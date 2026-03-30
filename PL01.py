@@ -27,7 +27,7 @@ def check_password():
     with col2:
         st.title("🔐 ĐĂNG NHẬP HỆ THỐNG ")
         st.info("Phần mềm thuộc bản quyền nội bộ. Vui lòng đăng nhập để tiếp tục.")
-        password = st.text_input("Nhập Mã PIN:", type="password")
+        password = st.text_input("Nhập MẬT KHẨU :", type="password")
         
         # ÔNG THAY ĐỔI MẬT KHẨU Ở ĐÂY (Hiện tại đang là 429751)
         if st.button("🚀 Đăng nhập", type="primary", use_container_width=True):
@@ -35,7 +35,7 @@ def check_password():
                 st.session_state["password_correct"] = True
                 st.rerun()
             else:
-                st.error("❌ Mã PIN không chính xác. Vui lòng liên hệ tác giả - Thọ: 0987575691.")
+                st.error("❌ Mật khẩu không chính xác. Vui lòng liên hệ tác giả - Thọ: 0987575691.")
     return False
 
 if not check_password():
@@ -49,7 +49,7 @@ image_files = glob.glob(os.path.join(script_dir, "anh_cua_toi*"))
 
 st.sidebar.markdown("### 👑 BẢN QUYỀN PHẦN MỀM")
 if image_files:
-    st.sidebar.image(image_files[0], use_container_width=True, caption="✨ THOKEEN PRO - Đẳng cấp dữ liệu")
+    st.sidebar.image(image_files[0], use_container_width=True, caption="✨ TRẠM QLTN KHU VỰC 1 ")
 else:
     st.sidebar.info("💡 Mẹo: Hãy copy 1 tấm ảnh, đổi tên thành `anh_cua_toi` và ném chung vào thư mục code nhé!")
 st.sidebar.markdown("---")
@@ -86,7 +86,7 @@ def clean_text(val):
     return s
 
 # ==========================================
-# 2. THUẬT TOÁN XUẤT EXCEL CHUẨN MỰC PL01 
+# 2. XUẤT EXCEL BẢNG PL01 
 # ==========================================
 def export_pl01_excel(df_raw, cfg):
     df_raw = df_raw.fillna("")
