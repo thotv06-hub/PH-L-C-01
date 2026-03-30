@@ -4,6 +4,7 @@ import io
 import time
 import os
 import glob
+import gc  # ĐÃ THÊM: Thư viện thu hồi bộ nhớ RAM tự động
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -385,6 +386,13 @@ if uploaded_file is not None:
     if st.session_state.get('last_file_id') != uploaded_file.file_id:
         st.session_state['last_file_id'] = uploaded_file.file_id
         
+        # --- ĐÃ THÊM: XẢ RAM KHI TẢI LÊN FILE MỚI ---
+        for key in ['raw_data', 'pl01_data', 'goc_data', 'cfg_hash']:
+            if key in st.session_state:
+                del st.session_state[key]
+        gc.collect() # Ép hệ thống giải phóng bộ nhớ ngay lập tức
+        # --------------------------------------------
+        
         progress_text = "⏳ Đang phân tích và đồng bộ hóa cấu trúc file..."
         my_bar = st.progress(0, text=progress_text)
         for percent in range(100):
@@ -607,3 +615,22 @@ if 'raw_data' in st.session_state:
                 st.download_button(label="🔄 Tải file Data Nội bộ ", data=st.session_state['goc_data'], file_name="Data_Goc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             st.warning("⚠️ Cấu hình mùa vụ đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
+
+# ==========================================
+# 5. CHỐNG TRÀN RAM: DỌN RÁC SAU KHI DÙNG XONG
+# ==========================================
+st.markdown("---")
+st.markdown("### 🧹 Tối ưu hệ thống")
+if st.button("Đóng phiên làm việc & Giải phóng bộ nhớ", type="secondary", use_container_width=True):
+    # Xóa toàn bộ dữ liệu nặng nhưng giữ lại trạng thái đăng nhập
+    keys_to_delete = [k for k in st.session_state.keys() if k != "password_correct"]
+    for k in keys_to_delete:
+        del st.session_state[k]
+    
+    gc.collect() # Ép hệ thống dọn rác cấp thấp
+    st.success("✅ Đã giải phóng 100% RAM bộ nhớ đệm cho phiên của bạn!")
+    time.sleep(1.5)
+    st.rerun()
+
+# Thu hồi bộ nhớ ẩn định kỳ mỗi lần app chạy lại (Rerun)
+gc.collect()
