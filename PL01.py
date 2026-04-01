@@ -337,13 +337,9 @@ def check_password():
         st.title("🔐 ĐĂNG NHẬP HỆ THỐNG")
         st.info("Phần mềm thuộc bản quyền tác giả. Vui lòng đăng nhập để tiếp tục.")
         
-        # SỬ DỤNG FORM ĐỂ CHO PHÉP ẤN ENTER
         with st.form("login_form"):
             password = st.text_input("Nhập Mật Khẩu :", type="password")
-            
-            # Trả lại nút Đăng nhập to, đẹp, tràn viền
             submitted = st.form_submit_button("🚀 Đăng nhập", type="primary", use_container_width=True)
-            
             if submitted:
                 if password == "429751": 
                     st.session_state["password_correct"] = True
@@ -351,7 +347,6 @@ def check_password():
                 else:
                     st.error("""
                     ❌ **Mật khẩu không chính xác.**
-                    
                     📞 Vui lòng liên hệ tác giả - **Trần Thọ**: 098.7575.691
                     """)
     return False
@@ -374,7 +369,6 @@ st.sidebar.markdown("""
 if image_files:
     with open(image_files[0], "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
-    
     st.sidebar.markdown(
         f"""
         <div class="logo-container">
@@ -805,6 +799,27 @@ if 'raw_data' in st.session_state:
             st.error("Hệ thống phát hiện các thửa đất sau đang bị nhập nhiều lần:")
             for _, r in dup_summary.iterrows():
                 st.write(f"👉 **Tờ bản đồ {r['3']}, thửa {r['4']}**: xuất hiện **{r['count']}** lần.")
+            st.markdown("---")
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("🔍 Lọc thửa đầu tiên"):
+                    if not dup_summary.empty:
+                        first_to = dup_summary.iloc[0]['3']
+                        first_thua = dup_summary.iloc[0]['4']
+                        st.session_state.search_to = str(first_to)
+                        st.session_state.search_thua = str(first_thua)
+                        st.rerun()
+            with col_btn2:
+                if st.button("🗑️ Xóa tất cả thửa trùng (giữ lại 1 mỗi thửa)"):
+                    dup_pairs = dup_summary[['3','4']].values.tolist()
+                    mask = pd.Series(False, index=st.session_state.raw_data.index)
+                    for to, thua in dup_pairs:
+                        idxs = st.session_state.raw_data[(st.session_state.raw_data['3'] == to) & (st.session_state.raw_data['4'] == thua)].index
+                        if len(idxs) > 1:
+                            mask[idxs[1:]] = True
+                    st.session_state.raw_data = st.session_state.raw_data[~mask].copy()
+                    st.success(f"✅ Đã xóa {mask.sum()} dòng trùng (giữ lại 1 dòng cho mỗi thửa).")
+                    st.rerun()
     else:
         st.success("✅ Dữ liệu sạch: Không phát hiện trùng lặp thửa đất!")
 
@@ -878,9 +893,9 @@ if 'raw_data' in st.session_state:
     st.subheader("Bảng tính Data Nội bộ (Tìm kiếm & Chỉnh sửa)")
     
     col1, col2, col3 = st.columns(3)
-    search_chu_ho = col1.text_input("🔍 Tìm theo Tên Chủ Hộ:")
-    search_to = col2.text_input("🗺️ Tìm theo Số Tờ BĐ:")
-    search_thua = col3.text_input("🟩 Tìm theo Số Thửa:")
+    search_chu_ho = col1.text_input("🔍 Tìm theo Tên Chủ Hộ:", key="search_chu_ho")
+    search_to = col2.text_input("🗺️ Tìm theo Số Tờ BĐ:", key="search_to")
+    search_thua = col3.text_input("🟩 Tìm theo Số Thửa:", key="search_thua")
     
     df_display = st.session_state.raw_data.copy()
     
@@ -894,64 +909,40 @@ if 'raw_data' in st.session_state:
     is_filtered = bool(search_chu_ho or search_to or search_thua)
     
     if is_filtered:
-        st.info(f"💡 Đang hiển thị {len(df_display)} kết quả lọc. (Lưu ý: Bạn có thể thêm/xóa hàng trực tiếp trên bảng lọc này, những thay đổi sẽ áp dụng cho dữ liệu gốc)")
+        st.info(f"💡 Đang hiển thị {len(df_display)} kết quả lọc. (Lưu ý: Chế độ lọc chỉ hỗ trợ sửa dữ liệu, hãy xóa ô tìm kiếm nếu muốn thêm hàng mới)")
 
     col_config = {col: st.column_config.NumberColumn(format="%.2f") for col in COLS[4:29]}
     col_config["2"] = st.column_config.TextColumn(width="large")
     
-    # Cho phép dynamic để thêm/xóa hàng trong cả hai chế độ
     edited_df = st.data_editor(
         df_display, 
         column_config=col_config, 
-        num_rows="dynamic",  # luôn dynamic để có thể xóa hàng khi lọc
+        num_rows="fixed" if is_filtered else "dynamic", 
         use_container_width=True, 
         height=500
     )
+
     # Nút xóa nhanh khi đang lọc
     if is_filtered:
         if st.button("🗑️ Xóa các dòng đang hiển thị (vĩnh viễn)", type="secondary"):
             with st.spinner("Đang xóa..."):
-                # Lấy danh sách index các dòng đang hiển thị
                 indices_to_drop = df_display.index.tolist()
-                # Xóa khỏi raw_data
                 st.session_state.raw_data.drop(indices_to_drop, inplace=True)
                 st.success(f"✅ Đã xóa {len(indices_to_drop)} dòng.")
-                # Reset lại bộ lọc để tránh hiển thị dòng đã xóa
                 st.rerun()
-    # ===== XỬ LÝ LƯU: HỖ TRỢ XÓA HÀNG KHI ĐANG LỌC =====
+
+    # Nút lưu thay đổi (đã sửa lỗi dtype)
     if st.button("💾 Lưu thay đổi bảng tính"):
         with st.spinner("Đang cập nhật thay đổi..."):
             time.sleep(0.5)
-            # Ép kiểu số
             for col in COLS[4:29]:
                 edited_df[col] = pd.to_numeric(edited_df[col], errors='coerce').fillna(0)
-            
             if is_filtered:
-                # Tìm các hàng đã bị xóa trong kết quả lọc
-                # df_display là DataFrame hiển thị (trước chỉnh sửa), edited_df là sau chỉnh sửa (có thể thiếu hàng)
-                # Xóa các hàng trong raw_data mà index nằm trong df_display nhưng không nằm trong edited_df
-                deleted_indexes = set(df_display.index) - set(edited_df.index)
-                if deleted_indexes:
-                    st.session_state.raw_data = st.session_state.raw_data.drop(index=deleted_indexes)
-                
-                # Cập nhật các hàng còn lại (có thể đã sửa)
-                # Chỉ cập nhật những hàng có index chung giữa edited_df và raw_data
-                common_indexes = edited_df.index.intersection(st.session_state.raw_data.index)
-                for idx in common_indexes:
+                for idx in edited_df.index:
                     for col in edited_df.columns:
                         st.session_state.raw_data.loc[idx, col] = edited_df.loc[idx, col]
-                
-                # Nếu có hàng mới được thêm vào (index chưa có trong raw_data)
-                new_indexes = edited_df.index.difference(st.session_state.raw_data.index)
-                if not new_indexes.empty:
-                    new_rows = edited_df.loc[new_indexes]
-                    st.session_state.raw_data = pd.concat([st.session_state.raw_data, new_rows], ignore_index=False)
-                    # Reset index để tránh trùng lặp
-                    st.session_state.raw_data.reset_index(drop=True, inplace=True)
             else:
-                # Không lọc: gán lại toàn bộ DataFrame (đã ép kiểu)
                 st.session_state.raw_data = edited_df.copy()
-            
         st.success("✅ Đã lưu! Cấu trúc Data gốc được bảo toàn an toàn tuyệt đối.")
         st.rerun()
 
@@ -1003,8 +994,6 @@ check_file = st.file_uploader("📥 Tải lên file PL01 cần kiểm tra (.xlsx
 if check_file is not None:
     try:
         import openpyxl
-        import pandas as pd
-        
         wb = openpyxl.load_workbook(check_file, data_only=True)
         ws = wb.active
         df_check = pd.DataFrame(ws.values)
@@ -1030,7 +1019,6 @@ if check_file is not None:
                 
                 if col2_name.startswith("- Vụ"):
                     current_season = col2_name
-                    
                 elif (col3_to not in ["None", "nan", ""]) and (col4_thua not in ["None", "nan", ""]):
                     parcels.append({
                         'Vụ': current_season,
@@ -1048,7 +1036,6 @@ if check_file is not None:
                     Số_lần_xuất_hiện=('Tờ', 'size'),
                     Vị_trí_dòng_Excel=('Dòng Excel', lambda x: ', '.join(map(str, x))) 
                 ).reset_index()
-                
                 parcel_counts.rename(columns={'Số_lần_xuất_hiện': 'Số lần xuất hiện', 'Vị_trí_dòng_Excel': 'Nằm tại các hàng (Excel)'}, inplace=True)
 
                 duplicates = parcel_counts[parcel_counts['Số lần xuất hiện'] > 1].copy()
@@ -1057,9 +1044,7 @@ if check_file is not None:
                     st.error(f"🚨 PHÁT HIỆN THỬA ĐẤT BỊ TRÙNG LẶP TRONG CÙNG MỘT VỤ!")
                     duplicates = duplicates.reset_index(drop=True)
                     duplicates.insert(0, 'STT', range(1, len(duplicates) + 1))
-                    
                     duplicates = duplicates[['STT', 'Vụ', 'Tờ', 'Thửa', 'Số lần xuất hiện', 'Nằm tại các hàng (Excel)']]
-                    
                     st.dataframe(duplicates, use_container_width=True, hide_index=True)
                 else:
                     st.success("✅ Tuyệt vời! Không phát hiện thửa đất nào bị trùng lặp trong các vụ.")
