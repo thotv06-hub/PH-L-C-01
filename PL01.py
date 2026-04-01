@@ -12,6 +12,16 @@ from openpyxl.utils import get_column_letter
 # Lệnh set_page_config phải luôn nằm trên cùng
 st.set_page_config(page_title="Phần mềm lập PL01 Chuyên nghiệp", layout="wide")
 
+# ĐÃ THÊM: CSS ẩn dòng chữ "Press Enter to submit form"
+hide_enter_text = """
+    <style>
+    [data-testid="stFormSubmitButton"] p {
+        display: none !important;
+    }
+    </style>
+"""
+st.markdown(hide_enter_text, unsafe_allow_html=True)
+
 # ==========================================
 # LỚP BẢO MẬT: KHÓA MẬT KHẨU (MÃ PIN)
 # ==========================================
@@ -27,16 +37,23 @@ def check_password():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🔐 ĐĂNG NHẬP HỆ THỐNG ")
-        st.info("Phần mềm thuộc bản quyền nội bộ. Vui lòng đăng nhập để tiếp tục.")
-        password = st.text_input("Nhập MẬT KHẨU :", type="password")
+        st.info("Phần mềm thuộc bản quyền tác giả. Vui lòng đăng nhập để tiếp tục.")
         
-        # ÔNG THAY ĐỔI MẬT KHẨU Ở ĐÂY (Hiện tại đang là 429751)
-        if st.button("🚀 Đăng nhập", type="primary", use_container_width=True):
-            if password == "429751": 
-                st.session_state["password_correct"] = True
-                st.rerun()
-            else:
-                st.error("❌ Mật khẩu không chính xác. Vui lòng liên hệ tác giả - Thọ: 0987575691.")
+        # SỬ DỤNG FORM ĐỂ CHO PHÉP ẤN ENTER
+        with st.form("login_form"):
+            password = st.text_input("Nhập Mật Khẩu :", type="password")
+            submitted = st.form_submit_button("🚀 Đăng nhập", type="primary", use_container_width=True)
+            
+            if submitted:
+                if password == "429751": 
+                    st.session_state["password_correct"] = True
+                    st.rerun()
+                else:
+                    st.error("""
+                    ❌ **Mật khẩu không chính xác.**
+                    
+                    📞 Vui lòng liên hệ tác giả - **Trần Thọ**: 098.7575.691
+                    """)
     return False
 
 if not check_password():
@@ -50,19 +67,29 @@ image_files = glob.glob(os.path.join(script_dir, "anh_cua_toi*"))
 
 st.sidebar.markdown("### 👑 BẢN QUYỀN PHẦN MỀM")
 if image_files:
-    st.sidebar.image(image_files[0], use_container_width=True, caption="✨ TRẠM QLTN KHU VỰC 1 ")
+    # ĐÃ SỬA: Căn giữa logo và chỉnh kích thước nhỏ lại (width=120)
+    st.sidebar.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+    st.sidebar.image(image_files[0], width=120)
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<p style='text-align: center; color: gray; font-size: 0.9em; margin-top: 5px;'>✨ TRẠM QLTN KHU VỰC 1</p>", unsafe_allow_html=True)
 else:
     st.sidebar.info("💡 Mẹo: Hãy copy 1 tấm ảnh, đổi tên thành `anh_cua_toi` và ném chung vào thư mục code nhé!")
 st.sidebar.markdown("---")
-# CHÈN NÚT DONATE CÀ PHÊ
-st.sidebar.markdown("### ☕ Góc nhỏ của Tác giả")
-st.sidebar.info("""
-Một ly cà phê từ bạn là sự ghi nhận tuyệt vời nhất cho những nỗ lực tự động hóa công việc này. Xin chân thành cảm ơn! ❤️
 
-🏦 **Ngân hàng:** Vietcom Bank  
-💳 **STK:** 0761002363642  
-👤 **Chủ TK:** Trần Văn Thọ
-""")
+# ==========================================
+# CHÈN NÚT DONATE CÀ PHÊ
+# ==========================================
+st.sidebar.markdown("### ☕ Góc nhỏ của Tác giả")
+
+st.sidebar.markdown("""
+<div style="text-align: justify; background-color: #e6f3fd; padding: 15px; border-radius: 5px; color: #0056b3; font-size: 14.5px;">
+Một ly cà phê từ bạn là sự ghi nhận tuyệt vời nhất cho những nỗ lực tự động hóa công việc này. Xin chân thành cảm ơn! ❤️
+<br><br>
+🏦 <b>Ngân hàng:</b> Vietcom Bank<br>
+💳 <b>STK:</b> <span style="font-size: 15px; color: #d9534f;"><b>0761002363642</b></span><br>
+👤 <b>Chủ TK:</b> Trần Văn Thọ
+</div>
+""", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
 # ==========================================
@@ -504,38 +531,41 @@ if 'raw_data' in st.session_state:
         return st.selectbox(label, [0, 1, 2], format_func=lambda x: "❌ Bỏ qua" if x==0 else ("🌱 1 Vụ (ĐX)" if x==1 else "🌾 Cả 2 Vụ"), key=key, label_visibility="collapsed")
 
     cfg = {}
-    with st.sidebar.expander("🌾 1. DIỆN TÍCH TRỒNG LÚA", expanded=True):
-        st.markdown("🎯 **Tưới tiêu bằng trọng lực:**")
+    
+    st.sidebar.markdown("#### 🌾 1. DIỆN TÍCH TRỒNG LÚA")
+    with st.sidebar.expander("💧 Tưới tiêu bằng trọng lực", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động (Cột 9):"); cfg["9"] = ui_select("l9")
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động 1 phần (Cột 10):"); cfg["10"] = ui_select("l10")
         c1, c2 = st.columns([5, 4]); c1.write("Tạo nguồn (Cột 11):"); cfg["11"] = ui_select("l11")
-        st.markdown("⚡ **Tưới tiêu bằng động lực:**")
+    with st.sidebar.expander("🚰 Tưới tiêu bằng động lực", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động (Cột 12):"); cfg["12"] = ui_select("l12")
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động 1 phần (Cột 13):"); cfg["13"] = ui_select("l13")
         c1, c2 = st.columns([5, 4]); c1.write("Tạo nguồn (Cột 14):"); cfg["14"] = ui_select("l14")
 
-    with st.sidebar.expander("🌳 2. CÂY CÔNG NGHIỆP DÀI NGÀY", expanded=False):
-        st.markdown("🎯 **Tưới tiêu bằng trọng lực:**")
+    st.sidebar.markdown("#### 🌳 2. CÂY CÔNG NGHIỆP DÀI NGÀY")
+    with st.sidebar.expander("💧 Tưới tiêu bằng trọng lực", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động (Cột 16):"); cfg["16"] = ui_select("c16")
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động 1 phần (Cột 17):"); cfg["17"] = ui_select("c17")
         c1, c2 = st.columns([5, 4]); c1.write("Tạo nguồn (Cột 18):"); cfg["18"] = ui_select("c18")
-        st.markdown("⚡ **Tưới tiêu bằng động lực:**")
+    with st.sidebar.expander("🚰 Tưới tiêu bằng động lực", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động (Cột 19):"); cfg["19"] = ui_select("c19")
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động 1 phần (Cột 20):"); cfg["20"] = ui_select("c20")
         c1, c2 = st.columns([5, 4]); c1.write("Tạo nguồn (Cột 21):"); cfg["21"] = ui_select("c21")
 
-    with st.sidebar.expander("🥬 3. RAU, MÀU, CÂY CNNN", expanded=False):
-        st.markdown("🎯 **Tưới tiêu bằng trọng lực:**")
+    st.sidebar.markdown("#### 🥬 3. RAU, MÀU, CÂY CNNN")
+    with st.sidebar.expander("💧 Tưới tiêu bằng trọng lực", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động (Cột 23):"); cfg["23"] = ui_select("m23")
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động 1 phần (Cột 24):"); cfg["24"] = ui_select("m24")
         c1, c2 = st.columns([5, 4]); c1.write("Tạo nguồn (Cột 25):"); cfg["25"] = ui_select("m25")
-        st.markdown("⚡ **Tưới tiêu bằng động lực:**")
+    with st.sidebar.expander("🚰 Tưới tiêu bằng động lực", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động (Cột 26):"); cfg["26"] = ui_select("m26")
         c1, c2 = st.columns([5, 4]); c1.write("Chủ động 1 phần (Cột 27):"); cfg["27"] = ui_select("m27")
         c1, c2 = st.columns([5, 4]); c1.write("Tạo nguồn (Cột 28):"); cfg["28"] = ui_select("m28")
 
-    with st.sidebar.expander("🐟 4. THỦY SẢN", expanded=False):
+    st.sidebar.markdown("#### 🐟 4. THỦY SẢN")
+    with st.sidebar.expander("🌊 Diện tích ao cá", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Ao cá (Cột 29):"); cfg["29"] = ui_select("ca29")
+
 
     # --- BỘ LỌC THÔNG MINH CHO BẢNG DỮ LIỆU ---
     st.subheader("3. Bảng tính Data Nội bộ (Tìm kiếm & Chỉnh sửa)")
@@ -615,5 +645,3 @@ if 'raw_data' in st.session_state:
                 st.download_button(label="🔄 Tải file Data Nội bộ ", data=st.session_state['goc_data'], file_name="Data_Goc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             st.warning("⚠️ Cấu hình mùa vụ đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
-
-# ==========================================
