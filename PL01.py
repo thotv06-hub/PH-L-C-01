@@ -915,13 +915,21 @@ if 'raw_data' in st.session_state:
         height=500
     )
 
+    # ==== SỬA LỖI: Cập nhật dữ liệu an toàn, tránh lỗi dtype ====
     if st.button("💾 Lưu thay đổi bảng tính"):
         with st.spinner("Đang cập nhật thay đổi..."):
             time.sleep(0.5)
+            # Ép kiểu các cột số thành float
+            for col in COLS[4:29]:
+                edited_df[col] = pd.to_numeric(edited_df[col], errors='coerce').fillna(0)
             if is_filtered:
-                st.session_state.raw_data.update(edited_df.fillna(""))
+                # Cập nhật từng ô theo index (chỉ các dòng đã lọc)
+                for idx in edited_df.index:
+                    for col in edited_df.columns:
+                        st.session_state.raw_data.loc[idx, col] = edited_df.loc[idx, col]
             else:
-                st.session_state.raw_data = edited_df.fillna("").copy()
+                # Gán lại toàn bộ DataFrame (đã được ép kiểu)
+                st.session_state.raw_data = edited_df.copy()
         st.success("✅ Đã lưu! Cấu trúc Data gốc được bảo toàn an toàn tuyệt đối.")
         st.rerun()
 
