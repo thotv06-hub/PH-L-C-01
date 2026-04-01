@@ -4,8 +4,8 @@ import io
 import time
 import os
 import glob
-import gc
-import base64
+import gc  # ĐÃ THÊM: Thư viện thu hồi bộ nhớ RAM tự động
+import base64 # ĐÃ THÊM: Thư viện mã hóa ảnh để ép căn giữa
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -14,311 +14,16 @@ from openpyxl.utils import get_column_letter
 st.set_page_config(page_title="Phần mềm lập PL01 Chuyên nghiệp", layout="wide")
 
 # ==========================================
-# TÙY BIẾN GIAO DIỆN WEB (CHỈ CSS, KHÔNG SỬA LOGIC)
+# ĐÃ SỬA: CSS Xóa triệt để chữ "Press Enter to submit form" trong ô Text Input
 # ==========================================
-st.markdown("""
-<style>
-    /* Import font hiện đại */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
-
-    /* Nền tổng thể gradient nhẹ */
-    .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #eef2f5 100%);
-    }
-
-    /* Sidebar làm đẹp */
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border-right: 1px solid rgba(0,0,0,0.05);
-        box-shadow: 4px 0 12px rgba(0,0,0,0.02);
-    }
-    section[data-testid="stSidebar"] .css-1d391kg {
-        background: transparent;
-    }
-
-    /* Tiêu đề sidebar */
-    .sidebar-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #1e3a8a;
-        text-align: center;
-        margin-bottom: 0.5rem;
-    }
-
-    /* Các expander trong sidebar */
-    .streamlit-expanderHeader {
-        font-weight: 500;
-        color: #2c3e66;
-        background-color: rgba(30, 58, 138, 0.05);
-        border-radius: 8px;
-        transition: 0.2s;
-    }
-    .streamlit-expanderHeader:hover {
-        background-color: rgba(30, 58, 138, 0.1);
-    }
-
-    /* Nút bấm chính */
-    .stButton > button {
-        border-radius: 30px !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        border: none !important;
-        background: linear-gradient(95deg, #1e3a8a 0%, #2563eb 100%) !important;
-        color: white !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 14px rgba(37,99,235,0.25);
-        background: linear-gradient(95deg, #1e40af 0%, #3b82f6 100%) !important;
-    }
-
-    /* Nút download */
-    .stDownloadButton > button {
-        background: linear-gradient(95deg, #10b981 0%, #34d399 100%) !important;
-        border-radius: 30px !important;
-        font-weight: 600 !important;
-    }
-    .stDownloadButton > button:hover {
-        background: linear-gradient(95deg, #059669 0%, #10b981 100%) !important;
-    }
-
-    /* Các khung thông báo */
-    .stAlert {
-        border-radius: 12px;
-        border-left: 5px solid;
-    }
-    .stAlert[data-baseweb="notification"] {
-        background-color: #fef9e3;
-        border-left-color: #f59e0b;
-    }
-    .stSuccess {
-        background-color: #e6f9ed;
-        border-left-color: #10b981;
-    }
-    .stError {
-        background-color: #fee2e2;
-        border-left-color: #ef4444;
-    }
-
-    /* Data Editor (bảng chỉnh sửa) */
-    [data-testid="stDataFrame"] {
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid #e2e8f0;
-        background: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    [data-testid="stDataFrame"] table {
-        font-size: 13px;
-    }
-    [data-testid="stDataFrame"] th {
-        background-color: #f1f5f9;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    /* Text input, number input */
-    .stTextInput > div > div > input, .stNumberInput > div > div > input {
-        border-radius: 12px;
-        border: 1px solid #cbd5e1;
-        transition: 0.2s;
-    }
-    .stTextInput > div > div > input:focus, .stNumberInput > div > div > input:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
-    }
-
-    /* Expander tiêu đề chính */
-    .streamlit-expanderHeader {
-        font-size: 1rem;
-        font-weight: 500;
-        background-color: rgba(30, 58, 138, 0.03);
-    }
-
-    /* Ẩn chữ "Press Enter..." - giữ nguyên CSS cũ */
+hide_enter_text = """
+    <style>
     [data-testid="InputInstructions"] {
         display: none !important;
     }
-
-    /* Header chính */
-    h1, h2, h3 {
-        font-weight: 600;
-        letter-spacing: -0.01em;
-    }
-    h1 {
-        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-size: 2.2rem;
-    }
-    .st-emotion-cache-1v0mbdj {
-        margin-top: -0.5rem;
-    }
-
-    /* Card cho các phần */
-    .card {
-        background: white;
-        border-radius: 20px;
-        padding: 1rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        margin-bottom: 1rem;
-        border: 1px solid #eef2ff;
-    }
-
-    /* Thanh progress */
-    .stProgress > div > div {
-        background-color: #3b82f6 !important;
-        border-radius: 20px;
-    }
-
-    /* Dropdown và selectbox */
-    .stSelectbox > div > div {
-        border-radius: 12px;
-    }
-
-    /* Căn chỉnh cột trong sidebar */
-    .css-1kyxreq {
-        gap: 0.5rem;
-    }
-
-    /* Responsive: giảm padding trên mobile */
-    @media (max-width: 768px) {
-        .stApp {
-            padding: 1rem;
-        }
-        section[data-testid="stSidebar"] {
-            padding: 0.5rem;
-        }
-    }
-
-    /* Nút toggle expander mượt */
-    .streamlit-expanderHeader svg {
-        transition: transform 0.2s;
-    }
-    .streamlit-expanderHeader:hover svg {
-        transform: scale(1.1);
-    }
-
-    /* Đẹp cho bảng trong expander cảnh báo */
-    .stExpander .stDataFrame {
-        border: none;
-        box-shadow: none;
-    }
-
-    /* Footer nhẹ */
-    .footer {
-        text-align: center;
-        font-size: 0.75rem;
-        color: #6c757d;
-        margin-top: 2rem;
-        border-top: 1px solid #e9ecef;
-        padding-top: 1rem;
-    }
-
-    /* ===== HIỆU ỨNG CHO GÓC NHỎ TÁC GIẢ ===== */
-    .donate-box {
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        animation: borderGlow 2s infinite;
-    }
-
-    @keyframes borderGlow {
-        0% { box-shadow: 0 0 0 0 rgba(0, 86, 179, 0.2); }
-        50% { box-shadow: 0 0 0 8px rgba(0, 86, 179, 0.1); }
-        100% { box-shadow: 0 0 0 0 rgba(0, 86, 179, 0.2); }
-    }
-
-    /* Hiệu ứng chữ chạy (marquee) cho dòng cảm ơn */
-    .marquee-text {
-        display: inline-block;
-        white-space: nowrap;
-        animation: marquee 15s linear infinite;
-        font-weight: 500;
-    }
-
-    @keyframes marquee {
-        0% { transform: translateX(100%); }
-        100% { transform: translateX(-100%); }
-    }
-
-    /* Hiệu ứng nhấp nháy cho số tài khoản */
-    .blink-number {
-        animation: blink 1s step-end infinite;
-    }
-
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-
-    /* ===== HIỆU ỨNG CHO LOGO VÀ TÊN CÔNG TY ===== */
-    /* Hiệu ứng chữ chạy cho tên công ty */
-    .company-name {
-        text-align: center;
-        font-size: 1.1em;
-        font-weight: 600;
-        color: #1E3A8A;
-        white-space: nowrap;
-        overflow: hidden;
-        animation: slideIn 1s ease-out, glow 2s ease-in-out infinite;
-    }
-
-    @keyframes slideIn {
-        from { transform: translateX(-30px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-
-    @keyframes glow {
-        0% { text-shadow: 0 0 0px #1E3A8A; }
-        50% { text-shadow: 0 0 8px #3b82f6; }
-        100% { text-shadow: 0 0 0px #1E3A8A; }
-    }
-
-    /* Hiệu ứng nhấp nháy cho dòng trạm */
-    .station-name {
-        text-align: center;
-        color: gray;
-        font-size: 0.9em;
-        margin-top: 5px;
-        animation: blinkSoft 1.5s step-start infinite;
-    }
-
-    @keyframes blinkSoft {
-        0%, 100% { opacity: 1; color: #6c757d; }
-        50% { opacity: 0.6; color: #1e3a8a; }
-    }
-
-    /* Hiệu ứng xoay nhẹ cho logo */
-    .logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 10px;
-        transition: transform 0.3s ease;
-    }
-    .logo-container:hover {
-        transform: scale(1.02);
-    }
-    .logo-img {
-        width: 140px;
-        height: auto;
-        animation: gentlePulse 2s infinite;
-    }
-
-    @keyframes gentlePulse {
-        0% { filter: drop-shadow(0 0 0px rgba(30,58,138,0.2)); transform: scale(1); }
-        50% { filter: drop-shadow(0 0 6px rgba(30,58,138,0.4)); transform: scale(1.02); }
-        100% { filter: drop-shadow(0 0 0px rgba(30,58,138,0.2)); transform: scale(1); }
-    }
-</style>
-""", unsafe_allow_html=True)
+    </style>
+"""
+st.markdown(hide_enter_text, unsafe_allow_html=True)
 
 # ==========================================
 # LỚP BẢO MẬT: KHÓA MẬT KHẨU (MÃ PIN)
@@ -334,7 +39,7 @@ def check_password():
     # Giao diện nhập mật khẩu
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.title("🔐 ĐĂNG NHẬP HỆ THỐNG")
+        st.title("🔐 ĐĂNG NHẬP HỆ THỐNG ")
         st.info("Phần mềm thuộc bản quyền tác giả. Vui lòng đăng nhập để tiếp tục.")
         
         # SỬ DỤNG FORM ĐỂ CHO PHÉP ẤN ENTER
@@ -360,48 +65,41 @@ if not check_password():
     st.stop() # Dừng toàn bộ App nếu chưa nhập đúng pass, giấu sạch code bên dưới
 
 # ==========================================
-# 0. KHU VỰC CHÈN ẢNH CHỦ QUYỀN (SIDEBAR) - CÓ HIỆU ỨNG
+# 0. KHU VỰC CHÈN ẢNH CHỦ QUYỀN (SIDEBAR)
 # ==========================================
 script_dir = os.path.dirname(os.path.abspath(__file__))
 image_files = glob.glob(os.path.join(script_dir, "anh_cua_toi*"))
 
-# Tên công ty có hiệu ứng chạy và glow
-st.sidebar.markdown("""
-<div class="company-name">
-    Công ty TNHH MTV Khai Thác<br>Công Trình Thủy Lợi Kon Tum
-</div>
-""", unsafe_allow_html=True)
-
+st.sidebar.markdown("<h3 style='text-align: center; font-size: 1.1em; color: #1E3A8A;'>Công ty TNHH MTV Khai Thác<br>Công Trình Thủy Lợi Kon Tum</h3>", unsafe_allow_html=True)
 if image_files:
+    # Mã hóa ảnh và dùng Flexbox ép căn giữa tuyệt đối, thu nhỏ kích thước
     with open(image_files[0], "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
     
-    # Logo với hiệu ứng pulse và hover
     st.sidebar.markdown(
         f"""
-        <div class="logo-container">
-            <img src="data:image/png;base64,{encoded_string}" class="logo-img">
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
+            <img src="data:image/png;base64,{encoded_string}" style="width: 140px; height: auto;">
         </div>
         """,
         unsafe_allow_html=True
     )
-    # Dòng trạm nhấp nháy
-    st.sidebar.markdown('<div class="station-name">✨ TRẠM QLTN KHU VỰC 1</div>', unsafe_allow_html=True)
+    st.sidebar.markdown("<p style='text-align: center; color: gray; font-size: 0.9em; margin-top: 5px;'>✨ TRẠM QLTN KHU VỰC 1</p>", unsafe_allow_html=True)
 else:
     st.sidebar.info("💡 Mẹo: Hãy copy 1 tấm ảnh, đổi tên thành `anh_cua_toi` và ném chung vào thư mục code nhé!")
 st.sidebar.markdown("---")
 
 # ==========================================
-# CHÈN NÚT DONATE CÀ PHÊ (CÓ HIỆU ỨNG)
+# CHÈN NÚT DONATE CÀ PHÊ
 # ==========================================
 st.sidebar.markdown("### ☕&nbsp;&nbsp;Góc nhỏ của Tác giả", unsafe_allow_html=True)
 
 st.sidebar.markdown("""
-<div class="donate-box" style="text-align: justify; background-color: #e6f3fd; padding: 15px; border-radius: 5px; color: #0056b3; font-size: 14.5px;">
-<span class="marquee-text">Một ly cà phê từ bạn là sự ghi nhận tuyệt vời nhất cho những nỗ lực tự động hóa công việc này. Xin chân thành cảm ơn! ❤️</span>
+<div style="text-align: justify; background-color: #e6f3fd; padding: 15px; border-radius: 5px; color: #0056b3; font-size: 14.5px;">
+Một ly cà phê từ bạn là sự ghi nhận tuyệt vời nhất cho những nỗ lực tự động hóa công việc này. Xin chân thành cảm ơn! ❤️
 <br><br>
 🏦 <b>Ngân hàng:</b> Vietcom Bank<br>
-💳 <b>STK:</b> <span class="blink-number" style="font-size: 15px; color: #d9534f;"><b>0761002363642</b></span><br>
+💳 <b>STK:</b> <span style="font-size: 15px; color: #d9534f;"><b>0761002363642</b></span><br>
 👤 <b>Chủ TK:</b> Trần Văn Thọ
 </div>
 """, unsafe_allow_html=True)
@@ -720,16 +418,15 @@ def export_formatted_data_goc(df):
     return out.getvalue()
 
 # ==========================================
-# GIAO DIỆN APP PHẦN 1: TẠO BÁO CÁO PL01
+# 4. GIAO DIỆN APP VÀ SIDEBAR TÙY BIẾN
 # ==========================================
-st.header("1. 🚀 Xây dựng và Xuất báo cáo PL01")
-uploaded_file = st.file_uploader("📥 Tải lên file Data Excel hoặc file Báo cáo PL01", type=["xlsx", "xls"])
+uploaded_file = st.file_uploader("1. Tải lên file Data Excel hoặc file Báo cáo PL01", type=["xlsx", "xls"])
 
 if uploaded_file is not None:
     if st.session_state.get('last_file_id') != uploaded_file.file_id:
         st.session_state['last_file_id'] = uploaded_file.file_id
         
-        # --- XẢ RAM KHI TẢI LÊN FILE MỚI ---
+        # --- ĐÃ THÊM: XẢ RAM KHI TẢI LÊN FILE MỚI ---
         for key in ['raw_data', 'pl01_data', 'goc_data', 'cfg_hash']:
             if key in st.session_state:
                 del st.session_state[key]
@@ -882,8 +579,9 @@ if 'raw_data' in st.session_state:
     with st.sidebar.expander("🌊 Diện tích ao cá", expanded=False):
         c1, c2 = st.columns([5, 4]); c1.write("Ao cá (Cột 29):"); cfg["29"] = ui_select("ca29")
 
+
     # --- BỘ LỌC THÔNG MINH CHO BẢNG DỮ LIỆU ---
-    st.subheader("Bảng tính Data Nội bộ (Tìm kiếm & Chỉnh sửa)")
+    st.subheader("3. Bảng tính Data Nội bộ (Tìm kiếm & Chỉnh sửa)")
     
     col1, col2, col3 = st.columns(3)
     search_chu_ho = col1.text_input("🔍 Tìm theo Tên Chủ Hộ:")
@@ -926,7 +624,7 @@ if 'raw_data' in st.session_state:
         st.rerun()
 
     st.markdown("---")
-    st.subheader("Xuất Biểu mẫu Báo cáo")
+    st.subheader("4. Xuất Biểu mẫu Báo cáo")
     
     if st.button("🚀 TỔNG HỢP VÀ TẠO BÁO CÁO (EXCEL)", type="primary"):
         progress_text = "⏳ Đang tính toán Ma trận và Gắn CÔNG THỨC EXCEL..."
@@ -960,90 +658,3 @@ if 'raw_data' in st.session_state:
                 st.download_button(label="🔄 Tải file Data Nội bộ ", data=st.session_state['goc_data'], file_name="Data_Goc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         else:
             st.warning("⚠️ Cấu hình mùa vụ đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
-
-# ==========================================
-# GIAO DIỆN APP PHẦN 2: KIỂM TRA TRÙNG LẶP TỪ PL01
-# ==========================================
-st.markdown("---")
-st.header("2. 🕵️ Kiểm tra Trùng lặp Tờ/Thửa từ PL01")
-st.info("Hệ thống sẽ quét toàn bộ file PL01 để phát hiện các thửa đất bị nhập trùng (Mỗi thửa chỉ được xuất hiện tối đa 1 lần trong cùng 1 Vụ).")
-
-check_file = st.file_uploader("📥 Tải lên file PL01 cần kiểm tra (.xlsx)", type=["xlsx"], key="check_file")
-
-if check_file is not None:
-    try:
-        import openpyxl
-        import pandas as pd
-        
-        # Đọc file lấy giá trị
-        wb = openpyxl.load_workbook(check_file, data_only=True)
-        ws = wb.active
-        df_check = pd.DataFrame(ws.values)
-        
-        # Tìm dòng bắt đầu dữ liệu
-        start_row_idx = -1
-        for i, row in df_check.iterrows():
-            if str(row[1]).strip() == "Tổng cộng":
-                start_row_idx = i + 3 
-                break
-                
-        if start_row_idx == -1:
-            st.error("❌ Không tìm thấy cấu trúc chuẩn. Vui lòng đảm bảo đây là file PL01.")
-        else:
-            data = df_check.iloc[start_row_idx:].copy()
-            current_season = "Không xác định"
-            parcels = []
-            
-            # Quét dữ liệu
-            for idx, row in data.iterrows():
-                excel_row_num = idx + 1 
-                col2_name = str(row[1]).strip()
-                col3_to = str(row[2]).strip()
-                col4_thua = str(row[3]).strip()
-                
-                # Nhận diện Vụ
-                if col2_name.startswith("- Vụ"):
-                    current_season = col2_name
-                    
-                # Nhận diện Thửa đất
-                elif (col3_to not in ["None", "nan", ""]) and (col4_thua not in ["None", "nan", ""]):
-                    parcels.append({
-                        'Vụ': current_season,
-                        'Tờ': col3_to,
-                        'Thửa': col4_thua,
-                        'Dòng Excel': excel_row_num
-                    })
-
-            df_parcels = pd.DataFrame(parcels)
-            
-            if df_parcels.empty:
-                st.warning("⚠️ Không tìm thấy dữ liệu thửa đất nào.")
-            else:
-                # --- THUẬT TOÁN ĐẾM CHÍNH XÁC THEO TỪNG VỤ ---
-                
-                # Gom nhóm đếm số lần xuất hiện của Tờ/Thửa TRONG CÙNG 1 VỤ
-                parcel_counts = df_parcels.groupby(['Vụ', 'Tờ', 'Thửa']).agg(
-                    Số_lần_xuất_hiện=('Tờ', 'size'),
-                    Vị_trí_dòng_Excel=('Dòng Excel', lambda x: ', '.join(map(str, x))) 
-                ).reset_index()
-                
-                parcel_counts.rename(columns={'Số_lần_xuất_hiện': 'Số lần xuất hiện', 'Vị_trí_dòng_Excel': 'Nằm tại các hàng (Excel)'}, inplace=True)
-
-                # Lọc ra các thửa bị trùng (Xuất hiện > 1 lần trong cùng 1 vụ)
-                duplicates = parcel_counts[parcel_counts['Số lần xuất hiện'] > 1].copy()
-                
-                if not duplicates.empty:
-                    st.error(f"🚨 PHÁT HIỆN THỬA ĐẤT BỊ TRÙNG LẶP TRONG CÙNG MỘT VỤ!")
-                    duplicates = duplicates.reset_index(drop=True)
-                    duplicates.insert(0, 'STT', range(1, len(duplicates) + 1))
-                    
-                    # Căn chỉnh lại thứ tự cột cho đẹp mắt
-                    duplicates = duplicates[['STT', 'Vụ', 'Tờ', 'Thửa', 'Số lần xuất hiện', 'Nằm tại các hàng (Excel)']]
-                    
-                    st.dataframe(duplicates, use_container_width=True, hide_index=True)
-                else:
-                    st.success("✅ Tuyệt vời! Không phát hiện thửa đất nào bị trùng lặp trong các vụ.")
-                    st.balloons()
-                    
-    except Exception as e:
-        st.error(f"❌ Lỗi đọc file: {e}")
