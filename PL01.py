@@ -341,7 +341,7 @@ def check_password():
             password = st.text_input("Nhập Mật Khẩu :", type="password")
             submitted = st.form_submit_button("🚀 Đăng nhập", type="primary", use_container_width=True)
             if submitted:
-                if password == "2685": 
+                if password == "429751": 
                     st.session_state["password_correct"] = True
                     st.rerun()
                 else:
@@ -799,27 +799,7 @@ if 'raw_data' in st.session_state:
             st.error("Hệ thống phát hiện các thửa đất sau đang bị nhập nhiều lần:")
             for _, r in dup_summary.iterrows():
                 st.write(f"👉 **Tờ bản đồ {r['3']}, thửa {r['4']}**: xuất hiện **{r['count']}** lần.")
-            st.markdown("---")
-            col_btn1, col_btn2 = st.columns(2)
-            with col_btn1:
-                if st.button("🔍 Lọc thửa đầu tiên"):
-                    if not dup_summary.empty:
-                        first_to = dup_summary.iloc[0]['3']
-                        first_thua = dup_summary.iloc[0]['4']
-                        st.session_state.search_to = str(first_to)
-                        st.session_state.search_thua = str(first_thua)
-                        st.rerun()
-            with col_btn2:
-                if st.button("🗑️ Xóa tất cả thửa trùng (giữ lại 1 mỗi thửa)"):
-                    dup_pairs = dup_summary[['3','4']].values.tolist()
-                    mask = pd.Series(False, index=st.session_state.raw_data.index)
-                    for to, thua in dup_pairs:
-                        idxs = st.session_state.raw_data[(st.session_state.raw_data['3'] == to) & (st.session_state.raw_data['4'] == thua)].index
-                        if len(idxs) > 1:
-                            mask[idxs[1:]] = True
-                    st.session_state.raw_data = st.session_state.raw_data[~mask].copy()
-                    st.success(f"✅ Đã xóa {mask.sum()} dòng trùng (giữ lại 1 dòng cho mỗi thửa).")
-                    st.rerun()
+            # Không có nút xóa nào ở đây
     else:
         st.success("✅ Dữ liệu sạch: Không phát hiện trùng lặp thửa đất!")
 
@@ -893,9 +873,9 @@ if 'raw_data' in st.session_state:
     st.subheader("Bảng tính Data Nội bộ (Tìm kiếm & Chỉnh sửa)")
     
     col1, col2, col3 = st.columns(3)
-    search_chu_ho = col1.text_input("🔍 Tìm theo Tên Chủ Hộ:", key="search_chu_ho")
-    search_to = col2.text_input("🗺️ Tìm theo Số Tờ BĐ:", key="search_to")
-    search_thua = col3.text_input("🟩 Tìm theo Số Thửa:", key="search_thua")
+    search_chu_ho = col1.text_input("🔍 Tìm theo Tên Chủ Hộ:")
+    search_to = col2.text_input("🗺️ Tìm theo Số Tờ BĐ:")
+    search_thua = col3.text_input("🟩 Tìm theo Số Thửa:")
     
     df_display = st.session_state.raw_data.copy()
     
@@ -922,14 +902,7 @@ if 'raw_data' in st.session_state:
         height=500
     )
 
-    # Nút xóa nhanh khi đang lọc
-    if is_filtered:
-        if st.button("🗑️ Xóa các dòng đang hiển thị (vĩnh viễn)", type="secondary"):
-            with st.spinner("Đang xóa..."):
-                indices_to_drop = df_display.index.tolist()
-                st.session_state.raw_data.drop(indices_to_drop, inplace=True)
-                st.success(f"✅ Đã xóa {len(indices_to_drop)} dòng.")
-                st.rerun()
+    # Không có nút xóa khi lọc ở đây
 
     # Nút lưu thay đổi (đã sửa lỗi dtype)
     if st.button("💾 Lưu thay đổi bảng tính"):
