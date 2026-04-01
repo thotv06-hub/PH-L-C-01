@@ -5,6 +5,7 @@ import time
 import os
 import glob
 import gc  # ĐÃ THÊM: Thư viện thu hồi bộ nhớ RAM tự động
+import base64 # ĐÃ THÊM: Thư viện mã hóa ảnh để ép căn giữa
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Side, Font, PatternFill
 from openpyxl.utils import get_column_letter
@@ -12,10 +13,12 @@ from openpyxl.utils import get_column_letter
 # Lệnh set_page_config phải luôn nằm trên cùng
 st.set_page_config(page_title="Phần mềm lập PL01 Chuyên nghiệp", layout="wide")
 
-# ĐÃ THÊM: CSS ẩn dòng chữ "Press Enter to submit form"
+# ==========================================
+# ĐÃ SỬA: CSS Xóa triệt để chữ "Press Enter to submit form" trong ô Text Input
+# ==========================================
 hide_enter_text = """
     <style>
-    [data-testid="stFormSubmitButton"] p {
+    [data-testid="InputInstructions"] {
         display: none !important;
     }
     </style>
@@ -42,6 +45,8 @@ def check_password():
         # SỬ DỤNG FORM ĐỂ CHO PHÉP ẤN ENTER
         with st.form("login_form"):
             password = st.text_input("Nhập Mật Khẩu :", type="password")
+            
+            # Trả lại nút Đăng nhập to, đẹp, tràn viền
             submitted = st.form_submit_button("🚀 Đăng nhập", type="primary", use_container_width=True)
             
             if submitted:
@@ -65,12 +70,20 @@ if not check_password():
 script_dir = os.path.dirname(os.path.abspath(__file__))
 image_files = glob.glob(os.path.join(script_dir, "anh_cua_toi*"))
 
-st.sidebar.markdown("### 👑 BẢN QUYỀN PHẦN MỀM")
+st.sidebar.markdown("<h3 style='text-align: center; font-size: 1.1em; color: #1E3A8A;'>Công ty TNHH MTV Khai Thác<br>Công Trình Thủy Lợi Kon Tum</h3>", unsafe_allow_html=True)
 if image_files:
-    # ĐÃ SỬA: Căn giữa logo và chỉnh kích thước nhỏ lại (width=120)
-    st.sidebar.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
-    st.sidebar.image(image_files[0], width=120)
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+    # Mã hóa ảnh và dùng Flexbox ép căn giữa tuyệt đối, thu nhỏ kích thước
+    with open(image_files[0], "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    
+    st.sidebar.markdown(
+        f"""
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
+            <img src="data:image/png;base64,{encoded_string}" style="width: 140px; height: auto;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     st.sidebar.markdown("<p style='text-align: center; color: gray; font-size: 0.9em; margin-top: 5px;'>✨ TRẠM QLTN KHU VỰC 1</p>", unsafe_allow_html=True)
 else:
     st.sidebar.info("💡 Mẹo: Hãy copy 1 tấm ảnh, đổi tên thành `anh_cua_toi` và ném chung vào thư mục code nhé!")
@@ -79,7 +92,7 @@ st.sidebar.markdown("---")
 # ==========================================
 # CHÈN NÚT DONATE CÀ PHÊ
 # ==========================================
-st.sidebar.markdown("### ☕ Góc nhỏ của Tác giả")
+st.sidebar.markdown("### ☕&nbsp;&nbsp;Góc nhỏ của Tác giả", unsafe_allow_html=True)
 
 st.sidebar.markdown("""
 <div style="text-align: justify; background-color: #e6f3fd; padding: 15px; border-radius: 5px; color: #0056b3; font-size: 14.5px;">
