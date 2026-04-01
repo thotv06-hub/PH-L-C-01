@@ -617,20 +617,3 @@ if 'raw_data' in st.session_state:
             st.warning("⚠️ Cấu hình mùa vụ đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
 
 # ==========================================
-# 5. CHỐNG TRÀN RAM: DỌN RÁC SAU KHI DÙNG XONG
-# ==========================================
-st.markdown("---")
-st.markdown("### 🧹 Tối ưu hệ thống")
-if st.button("Đóng phiên làm việc & Giải phóng bộ nhớ", type="secondary", use_container_width=True):
-    # Xóa toàn bộ dữ liệu nặng nhưng giữ lại trạng thái đăng nhập
-    keys_to_delete = [k for k in st.session_state.keys() if k != "password_correct"]
-    for k in keys_to_delete:
-        del st.session_state[k]
-    
-    gc.collect() # Ép hệ thống dọn rác cấp thấp
-    st.success("✅ Đã giải phóng 100% RAM bộ nhớ đệm cho phiên của bạn!")
-    time.sleep(1.5)
-    st.rerun()
-
-# Thu hồi bộ nhớ ẩn định kỳ mỗi lần app chạy lại (Rerun)
-gc.collect()
