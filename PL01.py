@@ -907,7 +907,17 @@ if 'raw_data' in st.session_state:
         use_container_width=True, 
         height=500
     )
-
+    # Nút xóa nhanh khi đang lọc
+    if is_filtered:
+        if st.button("🗑️ Xóa các dòng đang hiển thị (vĩnh viễn)", type="secondary"):
+            with st.spinner("Đang xóa..."):
+                # Lấy danh sách index các dòng đang hiển thị
+                indices_to_drop = df_display.index.tolist()
+                # Xóa khỏi raw_data
+                st.session_state.raw_data.drop(indices_to_drop, inplace=True)
+                st.success(f"✅ Đã xóa {len(indices_to_drop)} dòng.")
+                # Reset lại bộ lọc để tránh hiển thị dòng đã xóa
+                st.rerun()
     # ===== XỬ LÝ LƯU: HỖ TRỢ XÓA HÀNG KHI ĐANG LỌC =====
     if st.button("💾 Lưu thay đổi bảng tính"):
         with st.spinner("Đang cập nhật thay đổi..."):
