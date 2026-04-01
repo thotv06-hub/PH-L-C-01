@@ -808,10 +808,10 @@ if 'raw_data' in st.session_state:
     dup_mask = df_valid.duplicated(subset=['3', '4'], keep=False)
     if dup_mask.any():
         dup_df = df_valid[dup_mask]
-        # Gom nhóm Tờ/Thửa và hiển thị danh sách tên Chủ hộ bị trùng
+        # BẢN VÁ: Gom nhóm Tờ/Thửa và hiển thị danh sách tên Chủ hộ bị trùng
         dup_summary = dup_df.groupby(['3', '4']).agg(
             count=('2', 'size'),
-            chu_ho=('2', lambda x: ' | '.join(x.dropna().unique()))
+            chu_ho=('2', lambda x: ' | '.join(x.dropna().astype(str).unique()))
         ).reset_index()
         
         with st.expander("⚠️ PHÁT HIỆN TRÙNG LẶP THỬA ĐẤT (Bấm để xem chi tiết)", expanded=True):
@@ -1003,7 +1003,7 @@ if check_file is not None:
             for idx, row in data.iterrows():
                 excel_row_num = idx + 1 
                 col2_name = str(row[1]).strip()
-                # SỬ DỤNG CLEAN_TEXT ĐỂ ĐỒNG BỘ VỚI RADAR PHẦN 1
+                # BẢN VÁ: SỬ DỤNG CLEAN_TEXT ĐỂ ĐỒNG BỘ VỚI RADAR PHẦN 1
                 col3_to = clean_text(row[2])
                 col4_thua = clean_text(row[3])
                 
