@@ -341,7 +341,7 @@ def check_password():
             password = st.text_input("Nhập Mật Khẩu :", type="password")
             submitted = st.form_submit_button("🚀 Đăng nhập", type="primary", use_container_width=True)
             if submitted:
-                if password == "429751": 
+                if password == "2685": 
                     st.session_state["password_correct"] = True
                     st.rerun()
                 else:
