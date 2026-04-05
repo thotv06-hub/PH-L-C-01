@@ -366,7 +366,7 @@ if not check_password():
 # GIAO DIỆN CHÍNH (MAIN APP HEADER)
 # ==========================================
 st.markdown("<div class='app-header'>HỆ THỐNG TỰ ĐỘNG HÓA PL01 & PL02</div>", unsafe_allow_html=True)
-st.markdown("<div class='app-subheader'>Giải pháp thông minh bóc tách, kiểm tra và xây dựng báo cáo Thủy Lợi</div>", unsafe_allow_html=True)
+st.markdown("<div class='app-subheader'>Nền tảng số hóa dữ liệu Thủy lợi: Chính xác, Minh bạch và Hiệu quả.</div>", unsafe_allow_html=True)
 
 # ==========================================
 # 0. KHU VỰC CHÈN ẢNH CHỦ QUYỀN (SIDEBAR)
