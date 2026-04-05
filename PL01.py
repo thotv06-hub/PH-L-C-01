@@ -403,13 +403,13 @@ st.sidebar.markdown("<br>", unsafe_allow_html=True)
 # ==========================================
 st.sidebar.markdown("### ⚙️ CẤU HÌNH MÙA VỤ")
 
-st.sidebar.markdown("<div style='font-size: 13px; font-weight: 600; color: #1e3a8a; margin-bottom: 5px;'>📝 BƯỚC 1: Khai báo các Vụ trong năm</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size: 13px; font-weight: 600; color: #1e3a8a; margin-bottom: 5px;'>📝 BƯỚC 1: Khai báo các Mùa Vụ trong năm</div>", unsafe_allow_html=True)
 season_input_str = st.sidebar.text_input("Khai báo các Vụ", "Đông Xuân, Mùa", label_visibility="collapsed")
 master_seasons = [s.strip() for s in season_input_str.split(',') if s.strip()]
 if not master_seasons:
     master_seasons = ["Đông Xuân", "Mùa"] 
 
-st.sidebar.markdown("<div style='font-size: 13px; font-weight: 600; color: #1e3a8a; margin-top: 15px; margin-bottom: 5px;'>🎯 BƯỚC 2: Chọn Vụ cho từng Nhóm</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size: 13px; font-weight: 600; color: #1e3a8a; margin-top: 15px; margin-bottom: 5px;'>🎯 BƯỚC 2: Chọn Mùa Vụ cho từng Nhóm</div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-size: 12.5px; color: #64748b; margin-bottom: 10px; font-style: italic;'>Mở các nhóm bên dưới và tích (☑) để gán Vụ.</div>", unsafe_allow_html=True)
 
 # Từ điển ánh xạ ID cột sang Tên hiển thị rút gọn (Để bảng gọn gàng hơn)
@@ -1213,7 +1213,7 @@ def export_formatted_data_goc(df):
 # ==========================================
 # MAIN TABS (CHUYỂN ĐỔI CHỨC NĂNG)
 # ==========================================
-tab1, tab2 = st.tabs(["📊 XÂY DỰNG BÁO CÁO PL01 & PL02", "🕵️ KIỂM TRA & PHỤC HỒI DATA"])
+tab1, tab2 = st.tabs(["📊 XÂY DỰNG BÁO CÁO PL01 & PL02", "🕵️ KIỂM TRA PL01 & PHỤC HỒI DATA"])
 
 # ------------------------------------------
 # TAB 1: XÂY DỰNG BÁO CÁO PL01
@@ -1465,7 +1465,7 @@ with tab1:
                 st.markdown("<br>", unsafe_allow_html=True)
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.download_button(label="📥 TẢI XUỐNG BÁO CÁO PL01 & PL02 CHUẨN", data=st.session_state['pl01_data'], file_name="BieuMau_PL01_PL02.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.download_button(label="📥 TẢI XUỐNG BÁO CÁO PL01 & PL02", data=st.session_state['pl01_data'], file_name="BieuMau_PL01_PL02.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 with col2:
                     st.download_button(label="🔄 TẢI FILE DATA NỘI BỘ", data=st.session_state['goc_data'], file_name="Data_Goc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             else:
@@ -1675,7 +1675,7 @@ with tab2:
                             
                             recovered_excel = export_formatted_data_goc(df_recovered)
                             
-                            st.success("✅ Trích xuất thành công! Dữ liệu đã được gộp chuẩn xác, tách riêng theo Công Trình bất kể hệ thống có bao nhiêu Vụ.")
+                            st.success("✅ Trích xuất thành công! Dữ liệu đã được gộp chuẩn xác, tách riêng theo Công Trình.")
                             st.download_button(
                                 label="📥 TẢI XUỐNG DATA GỐC ĐÃ PHỤC HỒI", 
                                 data=recovered_excel, 
