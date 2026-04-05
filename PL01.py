@@ -394,7 +394,7 @@ if image_files:
 
 # Thêm ô nhập liệu Tên Trạm ở Sidebar để người dùng tuỳ chỉnh
 st.sidebar.markdown("<div style='font-size: 13px; font-weight: 600; color: #1e3a8a; margin-bottom: 5px;'>🏢 NHẬP TÊN TRẠM / ĐƠN VỊ CỦA BẠN</div>", unsafe_allow_html=True)
-station_name = st.sidebar.text_input("Tên Trạm/Đơn vị:", value="TRẠM QLTN KHU VỰC 1", label_visibility="collapsed")
+station_name = st.sidebar.text_input("Tên Trạm/Đơn vị:", value="TRẠM QLTN KHU VỰC I", label_visibility="collapsed")
 st.sidebar.markdown(f'<div style="text-align: center;"><span class="station-name">✨ {station_name}</span></div>', unsafe_allow_html=True)
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
@@ -1470,51 +1470,6 @@ with tab1:
                     st.download_button(label="🔄 TẢI FILE DATA NỘI BỘ", data=st.session_state['goc_data'], file_name="Data_Goc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             else:
                 st.warning("⚠️ Cấu hình mùa vụ hoặc Tên Trạm đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
-
-        # --- TÍCH HỢP DASHBOARD VÀO CUỐI TAB 1 ---
-        st.markdown("<hr style='margin: 30px 0 20px 0;'>", unsafe_allow_html=True)
-        st.markdown("<h3 style='color: #1e293b; font-size: 1.3rem; margin-bottom: 10px;'>📈 Bảng Điều Khiển & Thống Kê Nhanh</h3>", unsafe_allow_html=True)
-        
-        if 'raw_data' in st.session_state and not st.session_state.raw_data.empty:
-            df_dash = st.session_state.raw_data.copy()
-
-            # Đảm bảo các cột dữ liệu là số thực (float)
-            crop_cols = ['9','10','11','12','13','14', '16','17','18','19','20','21', '23','24','25','26','27','28', '29']
-            for col in crop_cols:
-                df_dash[col] = df_dash[col].apply(to_float)
-
-            # Tính tổng diện tích (Chia 10,000 để đổi ra HA)
-            tong_lua = df_dash[['9','10','11','12','13','14']].sum().sum() / 10000.0
-            tong_cndn = df_dash[['16','17','18','19','20','21']].sum().sum() / 10000.0
-            tong_cnnn = df_dash[['23','24','25','26','27','28']].sum().sum() / 10000.0
-            tong_ts = df_dash['29'].sum() / 10000.0
-            
-            # Tạo DataFrame riêng cho Biểu đồ
-            df_summary = pd.DataFrame({
-                "Nhóm Cây Trồng": ["Lúa", "Cây Công Nghiệp Dài Ngày", "Rau Màu & CNNN", "Thủy Sản"],
-                "Diện Tích (HA)": [tong_lua, tong_cndn, tong_cnnn, tong_ts]
-            })
-
-            # Lọc bỏ các nhóm có diện tích = 0
-            df_summary = df_summary[df_summary["Diện Tích (HA)"] > 0]
-
-            col_chart, col_data = st.columns([1.5, 1])
-
-            with col_chart:
-                with st.container(border=True):
-                    st.markdown("<div style='text-align: center; font-weight: bold; color: #1e3a8a; margin-bottom: 10px;'>📊 CƠ CẤU DIỆN TÍCH TƯỚI (HA)</div>", unsafe_allow_html=True)
-                    st.bar_chart(data=df_summary.set_index("Nhóm Cây Trồng"), use_container_width=True)
-
-            with col_data:
-                with st.container(border=True):
-                    st.markdown("<div style='text-align: center; font-weight: bold; color: #1e3a8a; margin-bottom: 10px;'>📋 SỐ LIỆU CHI TIẾT</div>", unsafe_allow_html=True)
-                    st.dataframe(
-                        df_summary.style.format({"Diện Tích (HA)": "{:,.2f}"}), 
-                        use_container_width=True, 
-                        hide_index=True
-                    )
-                    tong_toan_bo = df_summary["Diện Tích (HA)"].sum()
-                    st.markdown(f"<div style='margin-top: 15px; font-size: 1.1rem; color: #d9534f; font-weight: bold; text-align:center;'>🎯 TỔNG CỘNG: {tong_toan_bo:,.2f} HA</div>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # TAB 2: KIỂM TRA & PHỤC HỒI DATA TỪ PL01
