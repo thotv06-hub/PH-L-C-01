@@ -365,9 +365,76 @@ if not check_password():
 # ==========================================
 # GIAO DIỆN CHÍNH (MAIN APP HEADER)
 # ==========================================
+
+st.markdown("""
+<style>
+    .pm-quotes-container {
+        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+    .pm-quotes-label {
+        font-weight: 700;
+        white-space: nowrap;
+        margin-right: 15px;
+        padding-right: 15px;
+        border-right: 2px solid rgba(255,255,255,0.4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .pm-marquee-wrapper {
+        flex-grow: 1; 
+        overflow: hidden; 
+        position: relative;
+    }
+    .pm-marquee {
+        display: inline-block;
+        white-space: nowrap;
+        animation: marquee-quotes 35s linear infinite;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    .pm-marquee:hover {
+        animation-play-state: paused;
+    }
+    .pm-quote-text {
+        font-style: italic;
+    }
+    .pm-quote-author {
+        font-weight: 700;
+        color: #fbbf24; 
+    }
+    @keyframes marquee-quotes {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+    }
+</style>
+
+<div class="pm-quotes-container">
+    <div class="pm-quotes-label">
+        <span>🇻🇳</span> Định hướng Chuyển đổi số
+    </div>
+    <div class="pm-marquee-wrapper">
+        <span class="pm-marquee">
+            <span class="pm-quote-text">"Chuyển đổi số là xu thế tất yếu, là đòi hỏi khách quan của sự phát triển..."</span> - <span class="pm-quote-author">Thủ tướng Chính phủ Phạm Minh Chính</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⭐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="pm-quote-text">"Dữ liệu là tài nguyên mới, là nền tảng của chuyển đổi số..."</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⭐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="pm-quote-text">"Chuyển đổi số phải lấy người dân, doanh nghiệp làm trung tâm, chủ thể, làm mục tiêu, động lực..."</span>
+        </span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 st.markdown("<div class='app-header'>HỆ THỐNG TỰ ĐỘNG HÓA PL01 & PL02</div>", unsafe_allow_html=True)
 st.markdown("<div class='app-subheader'>Nền tảng số hóa dữ liệu Thủy lợi: Chính xác, Minh bạch và Hiệu quả.</div>", unsafe_allow_html=True)
-
 # ==========================================
 # 0. KHU VỰC CHÈN ẢNH CHỦ QUYỀN (SIDEBAR)
 # ==========================================
