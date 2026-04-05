@@ -365,7 +365,7 @@ if not check_password():
 # ==========================================
 # GIAO DIỆN CHÍNH (MAIN APP HEADER)
 # ==========================================
-st.markdown("<div class='app-header'>HỆ THỐNG TỰ ĐỘNG HÓA PL01</div>", unsafe_allow_html=True)
+st.markdown("<div class='app-header'>HỆ THỐNG TỰ ĐỘNG HÓA PL01 & PL02</div>", unsafe_allow_html=True)
 st.markdown("<div class='app-subheader'>Giải pháp thông minh bóc tách, kiểm tra và xây dựng báo cáo Thủy Lợi</div>", unsafe_allow_html=True)
 
 # ==========================================
@@ -391,7 +391,11 @@ if image_files:
         """,
         unsafe_allow_html=True
     )
-st.sidebar.markdown('<div style="text-align: center;"><span class="station-name">✨ TRẠM QLTN KHU VỰC 1</span></div>', unsafe_allow_html=True)
+
+# Thêm ô nhập liệu Tên Trạm ở Sidebar để người dùng tuỳ chỉnh
+st.sidebar.markdown("<div style='font-size: 13px; font-weight: 600; color: #1e3a8a; margin-bottom: 5px;'>🏢 NHẬP TÊN TRẠM / ĐƠN VỊ CỦA BẠN</div>", unsafe_allow_html=True)
+station_name = st.sidebar.text_input("Tên Trạm/Đơn vị:", value="TRẠM QLTN KHU VỰC I", label_visibility="collapsed")
+st.sidebar.markdown(f'<div style="text-align: center;"><span class="station-name">✨ {station_name}</span></div>', unsafe_allow_html=True)
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
@@ -521,7 +525,7 @@ def clean_text(val):
     if s.endswith('.0'): s = s[:-2]
     return s
 
-def export_pl01_excel(df_raw, cfg, master_seasons):
+def export_pl01_excel(df_raw, cfg, master_seasons, current_station_name):
     df_raw = df_raw.fillna("")
     wb = Workbook()
     ws = wb.active
@@ -534,6 +538,7 @@ def export_pl01_excel(df_raw, cfg, master_seasons):
     align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
     align_left = Alignment(horizontal="left", vertical="center", wrap_text=True)
     thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    fill_yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid") 
 
     ws.append(["PHỤ LỤC 01. BẢNG KÊ ĐỐI TƯỢNG VÀ DIỆN TÍCH, BIỆN PHÁP TƯỚI, TIÊU ĐƯỢC HỖ TRỢ TIỀN SỬ DỤNG SẢN PHẨM, DỊCH VỤ CÔNG ÍCH THỦY LỢI GIAI ĐOẠN 2026-2030"] + [""]*29)
     ws.append(["TỔ CHỨC THỦY LỢI CƠ SỞ (HTXDVNN,......): (chỉ áp dụng đối với HTX Đoàn kết và các Công ty cà phê), XÃ/PHƯỜNG: ............................................................."] + [""]*29)
@@ -599,181 +604,514 @@ def export_pl01_excel(df_raw, cfg, master_seasons):
     if not seasons: seasons = master_seasons
 
     num_seasons = len(seasons)
-    start_data_row = 7 + num_seasons + 1
+    current_excel_row = 7 
 
-    data_rows = []
-    current_excel_row = start_data_row
-    tt = 1
-    
     def get_season_val(row, col_str, season_target):
         if season_target in cfg.get(col_str, []):
             return to_float(row.get(col_str))
         return 0.0
 
-    for ho, group in df_raw.groupby("2", sort=False, dropna=False):
-        if pd.isna(ho) or str(ho).strip() == "" or str(ho) == "1": continue
-        
-        ho_parcels_exist = False
-        ho_season_indices = []
-        temp_ho_items = [] 
-        ho_row_idx = current_excel_row
-        
-        for season_target in seasons:
-            season_name = f"- Vụ {season_target}"
-            season_parcels = []
-            
-            for _, row in group.iterrows():
-                l9 = get_season_val(row, "9", season_target)
-                l10 = get_season_val(row, "10", season_target)
-                l11 = get_season_val(row, "11", season_target)
-                l12 = get_season_val(row, "12", season_target)
-                l13 = get_season_val(row, "13", season_target)
-                l14 = get_season_val(row, "14", season_target)
-                
-                c16 = get_season_val(row, "16", season_target)
-                c17 = get_season_val(row, "17", season_target)
-                c18 = get_season_val(row, "18", season_target)
-                c19 = get_season_val(row, "19", season_target)
-                c20 = get_season_val(row, "20", season_target)
-                c21 = get_season_val(row, "21", season_target)
-                
-                m23 = get_season_val(row, "23", season_target)
-                m24 = get_season_val(row, "24", season_target)
-                m25 = get_season_val(row, "25", season_target)
-                m26 = get_season_val(row, "26", season_target)
-                m27 = get_season_val(row, "27", season_target)
-                m28 = get_season_val(row, "28", season_target)
-                
-                ca29 = get_season_val(row, "29", season_target)
-                
-                sum_total = sum([l9,l10,l11,l12,l13,l14, c16,c17,c18,c19,c20,c21, m23,m24,m25,m26,m27,m28, ca29])
-                if sum_total == 0: continue
+    projects = []
+    for p in df_raw['6'].dropna().astype(str).str.strip():
+        if p not in ["", "nan", "None", "<NA>"] and p not in projects:
+            projects.append(p)
 
-                r_data = [""] * 30
-                r_data[2] = clean_text(row.get("3"))
-                r_data[3] = clean_text(row.get("4"))
-                r_data[4] = to_float(row.get("5"))
-                r_data[5] = clean_text(row.get("6"))
-                
-                r_data[8] = l9; r_data[9] = l10; r_data[10] = l11
-                r_data[11] = l12; r_data[12] = l13; r_data[13] = l14
-                
-                r_data[15] = c16; r_data[16] = c17; r_data[17] = c18
-                r_data[18] = c19; r_data[19] = c20; r_data[20] = c21
-                
-                r_data[22] = m23; r_data[23] = m24; r_data[24] = m25
-                r_data[25] = m26; r_data[26] = m27; r_data[27] = m28
-                
-                r_data[28] = ca29   
-                r_data[29] = clean_text(row.get("30"))
-                
-                season_parcels.append(r_data)
-            
-            if len(season_parcels) > 0:
-                ho_parcels_exist = True
-                season_row_idx = ho_row_idx + 1 + sum([len(s['parcels']) + 1 for s in temp_ho_items])
-                parcel_start = season_row_idx + 1
-                parcel_end = season_row_idx + len(season_parcels)
-                
-                season_row_data = [""] * 30
-                season_row_data[1] = season_name
+    if not projects:
+        projects = ["(Trống)"]
+        df_raw['6'] = "(Trống)"
+
+    # Bộ nhớ đệm dành cho PL02 (Tổng hợp sang HA)
+    pl02_totals = {p: {s: {c: 0.0 for c in range(6, 27)} for s in master_seasons} for p in projects}
+
+    # XỬ LÝ THEO TỪNG BLOCK CÔNG TRÌNH (PROJECT) CHO PL01
+    for project in projects:
+        df_project = df_raw[df_raw['6'].astype(str).str.strip() == project]
+        if df_project.empty: continue
+
+        project_total_idx = current_excel_row
+        project_season_idx = [current_excel_row + 1 + i for i in range(num_seasons)]
+        data_start_row = current_excel_row + 1 + num_seasons
+
+        data_rows = []
+        ho_row_cursor = data_start_row
+        tt = 1 
+
+        for ho, group in df_project.groupby("2", sort=False, dropna=False):
+            if pd.isna(ho) or str(ho).strip() == "" or str(ho) == "1": continue
+
+            ho_parcels_exist = False
+            ho_season_indices = []
+            temp_ho_items = []
+            ho_row_idx = ho_row_cursor
+
+            for season_target in seasons:
+                season_name = f"- Vụ {season_target}"
+                season_parcels = []
+
+                for _, row in group.iterrows():
+                    l9 = get_season_val(row, "9", season_target)
+                    l10 = get_season_val(row, "10", season_target)
+                    l11 = get_season_val(row, "11", season_target)
+                    l12 = get_season_val(row, "12", season_target)
+                    l13 = get_season_val(row, "13", season_target)
+                    l14 = get_season_val(row, "14", season_target)
+                    
+                    c16 = get_season_val(row, "16", season_target)
+                    c17 = get_season_val(row, "17", season_target)
+                    c18 = get_season_val(row, "18", season_target)
+                    c19 = get_season_val(row, "19", season_target)
+                    c20 = get_season_val(row, "20", season_target)
+                    c21 = get_season_val(row, "21", season_target)
+                    
+                    m23 = get_season_val(row, "23", season_target)
+                    m24 = get_season_val(row, "24", season_target)
+                    m25 = get_season_val(row, "25", season_target)
+                    m26 = get_season_val(row, "26", season_target)
+                    m27 = get_season_val(row, "27", season_target)
+                    m28 = get_season_val(row, "28", season_target)
+                    
+                    ca29 = get_season_val(row, "29", season_target)
+                    
+                    sum_total = sum([l9,l10,l11,l12,l13,l14, c16,c17,c18,c19,c20,c21, m23,m24,m25,m26,m27,m28, ca29])
+                    if sum_total == 0: continue
+
+                    # Lưu vào dữ liệu TỔNG HỢP PL02 (Chia 10000 để ra HA)
+                    pl02_totals[project][season_target][6] += l9 / 10000.0
+                    pl02_totals[project][season_target][7] += l10 / 10000.0
+                    pl02_totals[project][season_target][8] += l11 / 10000.0
+                    pl02_totals[project][season_target][9] += l12 / 10000.0
+                    pl02_totals[project][season_target][10] += l13 / 10000.0
+                    pl02_totals[project][season_target][11] += l14 / 10000.0
+                    
+                    pl02_totals[project][season_target][13] += c16 / 10000.0
+                    pl02_totals[project][season_target][14] += c17 / 10000.0
+                    pl02_totals[project][season_target][15] += c18 / 10000.0
+                    pl02_totals[project][season_target][16] += c19 / 10000.0
+                    pl02_totals[project][season_target][17] += c20 / 10000.0
+                    pl02_totals[project][season_target][18] += c21 / 10000.0
+                    
+                    pl02_totals[project][season_target][20] += m23 / 10000.0
+                    pl02_totals[project][season_target][21] += m24 / 10000.0
+                    pl02_totals[project][season_target][22] += m25 / 10000.0
+                    pl02_totals[project][season_target][23] += m26 / 10000.0
+                    pl02_totals[project][season_target][24] += m27 / 10000.0
+                    pl02_totals[project][season_target][25] += m28 / 10000.0
+                    
+                    pl02_totals[project][season_target][26] += ca29 / 10000.0
+
+                    # Data dòng thửa cho PL01
+                    r_data = [""] * 30
+                    r_data[2] = clean_text(row.get("3"))
+                    r_data[3] = clean_text(row.get("4"))
+                    r_data[4] = to_float(row.get("5"))
+                    r_data[5] = "" 
+                    
+                    r_data[8] = l9; r_data[9] = l10; r_data[10] = l11
+                    r_data[11] = l12; r_data[12] = l13; r_data[13] = l14
+                    
+                    r_data[15] = c16; r_data[16] = c17; r_data[17] = c18
+                    r_data[18] = c19; r_data[19] = c20; r_data[20] = c21
+                    
+                    r_data[22] = m23; r_data[23] = m24; r_data[24] = m25
+                    r_data[25] = m26; r_data[26] = m27; r_data[27] = m28
+                    
+                    r_data[28] = ca29   
+                    r_data[29] = clean_text(row.get("30"))
+                    
+                    season_parcels.append(r_data)
+
+                if len(season_parcels) > 0:
+                    ho_parcels_exist = True
+                    season_row_idx = ho_row_idx + 1 + sum([len(s['parcels']) + 1 for s in temp_ho_items])
+                    parcel_start = season_row_idx + 1
+                    parcel_end = season_row_idx + len(season_parcels)
+
+                    season_row_data = [""] * 30
+                    season_row_data[1] = season_name
+                    for i in vertical_cols:
+                        col_letter = get_column_letter(i + 1)
+                        if parcel_start == parcel_end: season_row_data[i] = f"={col_letter}{parcel_start}"
+                        else: season_row_data[i] = f"=SUM({col_letter}{parcel_start}:{col_letter}{parcel_end})"
+
+                    temp_ho_items.append({
+                        "season_row_data": season_row_data,
+                        "season_row_idx": season_row_idx,
+                        "parcels": season_parcels
+                    })
+                    ho_season_indices.append(season_row_idx)
+
+            if ho_parcels_exist:
+                ho_row_data = [""] * 30
+                ho_row_data[0] = tt
+                ho_row_data[1] = ho
                 for i in vertical_cols:
                     col_letter = get_column_letter(i + 1)
-                    if parcel_start == parcel_end: season_row_data[i] = f"={col_letter}{parcel_start}"
-                    else: season_row_data[i] = f"=SUM({col_letter}{parcel_start}:{col_letter}{parcel_end})"
-                
-                temp_ho_items.append({
-                    "season_row_data": season_row_data,
-                    "season_row_idx": season_row_idx,
-                    "parcels": season_parcels
-                })
-                ho_season_indices.append(season_row_idx)
-                
-        if ho_parcels_exist:
-            ho_row_data = [""] * 30
-            ho_row_data[0] = tt
-            ho_row_data[1] = ho
-            for i in vertical_cols:
-                col_letter = get_column_letter(i + 1)
-                if len(ho_season_indices) == 1: ho_row_data[i] = f"={col_letter}{ho_season_indices[0]}"
-                else: ho_row_data[i] = f"=SUM({','.join([f'{col_letter}{idx}' for idx in ho_season_indices])})"
-            
-            data_rows.append({"type": "ho", "data": ho_row_data})
-            current_excel_row += 1
-            for s_item in temp_ho_items:
-                data_rows.append({"type": "season", "data": s_item["season_row_data"]})
-                current_excel_row += 1
-                for p_data in s_item["parcels"]:
-                    data_rows.append({"type": "parcel", "data": p_data})
-                    current_excel_row += 1
-            tt += 1
+                    if len(ho_season_indices) == 1: ho_row_data[i] = f"={col_letter}{ho_season_indices[0]}"
+                    else: ho_row_data[i] = f"=SUM({','.join([f'{col_letter}{idx}' for idx in ho_season_indices])})"
 
-    max_row = current_excel_row - 1
-    
-    row_tong = ["1", "Tổng cộng", "", "", "", "THOKEEN PRO"] + [""] * 24
-    row_tong[6] = "=H7+O7+V7+AC7"
-    row_tong[7] = "=SUM(I7:N7)"
-    row_tong[14] = "=SUM(P7:U7)"
-    row_tong[21] = "=SUM(W7:AB7)"
-    
-    season_rows_data = []
-    alphabets = "abcdefghijklmnopqrstuvwxyz"
-    
-    for idx, s_name in enumerate(seasons):
-        r_data = [alphabets[idx % 26], f"Vụ {s_name}", "", "", "", ""] + [""] * 24
-        r_idx = 8 + idx
-        r_data[6] = f"={get_column_letter(8)}{r_idx}+{get_column_letter(15)}{r_idx}+{get_column_letter(22)}{r_idx}+{get_column_letter(29)}{r_idx}"
-        r_data[7] = f"=SUM({get_column_letter(9)}{r_idx}:{get_column_letter(14)}{r_idx})"
-        r_data[14] = f"=SUM({get_column_letter(16)}{r_idx}:{get_column_letter(21)}{r_idx})"
-        r_data[21] = f"=SUM({get_column_letter(23)}{r_idx}:{get_column_letter(28)}{r_idx})"
-        season_rows_data.append(r_data)
+                data_rows.append({"type": "ho", "data": ho_row_data, "row_idx": ho_row_idx})
+                ho_row_cursor += 1
+                for s_item in temp_ho_items:
+                    data_rows.append({"type": "season", "data": s_item["season_row_data"], "row_idx": s_item["season_row_idx"]})
+                    ho_row_cursor += 1
+                    for p_data in s_item["parcels"]:
+                        data_rows.append({"type": "parcel", "data": p_data, "row_idx": ho_row_cursor})
+                        ho_row_cursor += 1
+                tt += 1
 
-    if max_row >= start_data_row:
-        for i in vertical_cols:
-            col_letter = get_column_letter(i + 1)
-            row_tong[i] = f"=SUM({col_letter}8:{col_letter}{7+num_seasons})"
-            
-            for idx, s_name in enumerate(seasons):
-                season_rows_data[idx][i] = f'=SUMIF($B${start_data_row}:$B${max_row}, "- Vụ {s_name}", {col_letter}${start_data_row}:{col_letter}${max_row})'
+        project_max_row = ho_row_cursor - 1
 
-    ws.append(row_tong)
-    for r_data in season_rows_data:
-        ws.append(r_data)
+        row_tong = ["1", "Tổng cộng", "", "", "", project] + [""] * 24
+        row_tong[6] = f"={get_column_letter(8)}{project_total_idx}+{get_column_letter(15)}{project_total_idx}+{get_column_letter(22)}{project_total_idx}+{get_column_letter(29)}{project_total_idx}"
+        row_tong[7] = f"=SUM({get_column_letter(9)}{project_total_idx}:{get_column_letter(14)}{project_total_idx})"
+        row_tong[14] = f"=SUM({get_column_letter(16)}{project_total_idx}:{get_column_letter(21)}{project_total_idx})"
+        row_tong[21] = f"=SUM({get_column_letter(23)}{project_total_idx}:{get_column_letter(28)}{project_total_idx})"
 
-    for c_idx in range(1, 31):
-        for r_idx in range(7, start_data_row): 
-            cell = ws.cell(row=r_idx, column=c_idx)
+        if project_max_row >= data_start_row:
+             for i in vertical_cols:
+                 col_letter = get_column_letter(i + 1)
+                 row_tong[i] = f"=SUM({col_letter}{project_season_idx[0]}:{col_letter}{project_season_idx[-1]})"
+
+        ws.append([clean_zero(v) if isinstance(v, float) else v for v in row_tong])
+        for c_idx, cell in enumerate(ws[project_total_idx], start=1):
             cell.font = Font(name='Times New Roman', size=11, bold=True, color="FF0000")
             cell.border = thin_border
             cell.alignment = align_center if c_idx != 2 else align_left
-            if c_idx >= 5 and c_idx <= 29: 
-                cell.number_format = '#,##0.00;-#,##0.00;""'
+            cell.fill = fill_yellow 
+            if c_idx >= 5 and c_idx <= 29: cell.number_format = '#,##0.00;-#,##0.00;""'
 
-    start_row = start_data_row
-    for item in data_rows:
-        r_data = item["data"]
-        r_data[6] = f"=H{start_row}+O{start_row}+V{start_row}+AC{start_row}"
-        r_data[7] = f"=SUM(I{start_row}:N{start_row})"
-        r_data[14] = f"=SUM(P{start_row}:U{start_row})"
-        r_data[21] = f"=SUM(W{start_row}:AB{start_row})"
-        
-        ws.append([clean_zero(v) if isinstance(v, float) else v for v in r_data])
-        
-        for col_idx, cell in enumerate(ws[start_row], start=1):
-            cell.border = thin_border
-            cell.font = font_normal
-            cell.alignment = align_center
-            if col_idx == 2: cell.alignment = align_left
-            if item["type"] == "ho" and col_idx in [1, 2]: cell.font = font_bold
-            
-            if col_idx >= 5 and col_idx <= 29:
-                cell.number_format = '#,##0.00;-#,##0.00;""'
-                
-        start_row += 1
+        alphabets = "abcdefghijklmnopqrstuvwxyz"
+        for idx, s_name in enumerate(seasons):
+            r_idx = project_season_idx[idx]
+            r_data = [alphabets[idx % 26], f"Vụ {s_name}", "", "", "", ""] + [""] * 24
+            r_data[6] = f"={get_column_letter(8)}{r_idx}+{get_column_letter(15)}{r_idx}+{get_column_letter(22)}{r_idx}+{get_column_letter(29)}{r_idx}"
+            r_data[7] = f"=SUM({get_column_letter(9)}{r_idx}:{get_column_letter(14)}{r_idx})"
+            r_data[14] = f"=SUM({get_column_letter(16)}{r_idx}:{get_column_letter(21)}{r_idx})"
+            r_data[21] = f"=SUM({get_column_letter(23)}{r_idx}:{get_column_letter(28)}{r_idx})"
+
+            if project_max_row >= data_start_row:
+                for i in vertical_cols:
+                    col_letter = get_column_letter(i + 1)
+                    r_data[i] = f'=SUMIF($B${data_start_row}:$B${project_max_row}, "- Vụ {s_name}", {col_letter}${data_start_row}:{col_letter}${project_max_row})'
+
+            ws.append([clean_zero(v) if isinstance(v, float) else v for v in r_data])
+            for c_idx, cell in enumerate(ws[r_idx], start=1):
+                cell.font = Font(name='Times New Roman', size=11, bold=True, color="FF0000")
+                cell.border = thin_border
+                cell.alignment = align_center if c_idx != 2 else align_left
+                cell.fill = fill_yellow 
+                if c_idx >= 5 and c_idx <= 29: cell.number_format = '#,##0.00;-#,##0.00;""'
+
+        for item in data_rows:
+            r_data = item["data"]
+            row_idx = item["row_idx"]
+            r_data[6] = f"=H{row_idx}+O{row_idx}+V{row_idx}+AC{row_idx}"
+            r_data[7] = f"=SUM(I{row_idx}:N{row_idx})"
+            r_data[14] = f"=SUM(P{row_idx}:U{row_idx})"
+            r_data[21] = f"=SUM(W{row_idx}:AB{row_idx})"
+
+            ws.append([clean_zero(v) if isinstance(v, float) else v for v in r_data])
+            for col_idx, cell in enumerate(ws[row_idx], start=1):
+                cell.border = thin_border
+                cell.font = font_normal
+                cell.alignment = align_center
+                if col_idx == 2: cell.alignment = align_left
+                if item["type"] == "ho" and col_idx in [1, 2]: cell.font = font_bold
+                if col_idx >= 5 and col_idx <= 29: cell.number_format = '#,##0.00;-#,##0.00;""'
+
+        current_excel_row = project_max_row + 1
+
+    # ==========================================
+    # CHÈN CHỮ KÝ / FOOTER CUỐI FILE PL01
+    # ==========================================
+    ws.append([""] * 30)
+    ws.append([""] * 30)
+    footer_start_row = ws.max_row + 1
+
+    # Dòng Ngày tháng năm
+    row_date = [""] * 30
+    row_date[17] = "Ngày ..... tháng ..... năm ....."
+    ws.append(row_date)
+    ws.merge_cells(start_row=footer_start_row, start_column=18, end_row=footer_start_row, end_column=30)
+    cell_date = ws.cell(row=footer_start_row, column=18)
+    cell_date.font = Font(name='Times New Roman', size=11, italic=True)
+    cell_date.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Dòng chức danh (Người lập, Trạm, Công ty)
+    footer_row_2 = footer_start_row + 1
+    row_sig = [""] * 30
+    row_sig[0] = "Người lập"
+    row_sig[6] = current_station_name.upper()
+    row_sig[17] = "CÔNG TY TNHH MTV KHAI THÁC CTTL KON TUM"
+    ws.append(row_sig)
+
+    ws.merge_cells(start_row=footer_row_2, start_column=1, end_row=footer_row_2, end_column=6)
+    ws.merge_cells(start_row=footer_row_2, start_column=7, end_row=footer_row_2, end_column=17)
+    ws.merge_cells(start_row=footer_row_2, start_column=18, end_row=footer_row_2, end_column=30)
+
+    for col in [1, 7, 18]:
+        c = ws.cell(row=footer_row_2, column=col)
+        c.font = Font(name='Times New Roman', size=11, bold=True)
+        c.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Chừa dòng trống ký tên Của Công Ty
+    for _ in range(5):
+        ws.append([""] * 30)
+
+    # Khối chữ ký UBND Xã nằm ngay DƯỚI phần Công ty
+    footer_ubnd_start = ws.max_row + 1
+    
+    # Dòng Phòng Kinh Tế (Trái) & UBND Xã (Phải)
+    row_ubnd = [""] * 30
+    row_ubnd[0] = "PHÒNG KINH TẾ"
+    row_ubnd[17] = "UBND XÃ............." 
+    ws.append(row_ubnd)
+    
+    # Dòng Ký tên đóng dấu
+    row_ubnd_ky = [""] * 30
+    row_ubnd_ky[17] = "(Ký tên, đóng dấu)" 
+    ws.append(row_ubnd_ky)
+
+    ws.merge_cells(start_row=footer_ubnd_start, start_column=1, end_row=footer_ubnd_start, end_column=6)
+    ws.merge_cells(start_row=footer_ubnd_start, start_column=18, end_row=footer_ubnd_start, end_column=30)
+    ws.merge_cells(start_row=footer_ubnd_start+1, start_column=18, end_row=footer_ubnd_start+1, end_column=30)
+
+    c_pkt = ws.cell(row=footer_ubnd_start, column=1)
+    c_pkt.font = Font(name='Times New Roman', size=11, bold=True, color="FF0000")
+    c_pkt.alignment = Alignment(horizontal='center', vertical='center')
+
+    c_ubnd = ws.cell(row=footer_ubnd_start, column=18)
+    c_ubnd.font = Font(name='Times New Roman', size=11, bold=True)
+    c_ubnd.alignment = Alignment(horizontal='center', vertical='center')
+    
+    c_ubnd_ky = ws.cell(row=footer_ubnd_start+1, column=18)
+    c_ubnd_ky.font = Font(name='Times New Roman', size=11, italic=True)
+    c_ubnd_ky.alignment = Alignment(horizontal='center', vertical='center')
 
     ws.column_dimensions['A'].width = 5; ws.column_dimensions['B'].width = 25
     ws.column_dimensions['C'].width = 8; ws.column_dimensions['D'].width = 8   
     for i in range(5, 31): ws.column_dimensions[get_column_letter(i)].width = 10
+
+
+    # ==========================================
+    # XÂY DỰNG SHEET PL02 (TỔNG HỢP DIỆN TÍCH - HA)
+    # ==========================================
+    ws2 = wb.create_sheet(title="PL02")
+
+    ws2.append(["CÔNG TRÌNH THỦY LỢI DO CÔNG TY TNHH MTV KHAI THÁC CÔNG TRÌNH THỦY LỢI KON TUM QUẢN LÝ, KHAI THÁC"] + [""]*25)
+    ws2.append(["PHỤ LỤC 02. TỔNG HỢP DIỆN TÍCH, BIỆN PHÁP TƯỚI, TIÊU ĐƯỢC HỖ TRỢ TIỀN SỬ DỤNG SẢN PHẨM, DỊCH VỤ CÔNG ÍCH THỦY LỢI GIAI ĐOẠN 2026-2030"] + [""]*25)
+    ws2.append(["TRÊN ĐỊA BÀN: XÃ......................................................................"] + [""]*25)
+    ws2.append(["TỈNH......................................................................"] + [""]*25)
+    ws2.append([""]*26)
+
+    for i in range(1, 5): ws2.merge_cells(start_row=i, start_column=1, end_row=i, end_column=26)
+    
+    ws2['A1'].font = Font(name='Times New Roman', size=11)
+    ws2['A1'].alignment = Alignment(horizontal="left", vertical="center")
+    ws2['A2'].font = font_title; ws2['A2'].alignment = align_center
+    ws2['A3'].font = font_bold; ws2['A3'].alignment = align_center
+    ws2['A4'].font = font_bold; ws2['A4'].alignment = align_center
+
+    # Bảng Tiêu đề PL02 (26 cột)
+    ws2.append([
+        "TT", "Tên trạm QLTN / Vụ", "Tên công trình cấp nước\n(Tuyến kênh, HCN, đập dâng.........)", 
+        "TỔNG DIỆN TÍCH (HA)", "DIỆN TÍCH TRỒNG LÚA (HA)", "", "", "", "", "", "",
+        "DIỆN TÍCH TRỒNG CÂY CÔNG NGHIỆP DÀI NGÀY (HA)", "", "", "", "", "", "",
+        "DIỆN TÍCH TRỒNG RAU, MÀU, CÂY CÔNG NGHIỆP NGẮN NGÀY (HA)", "", "", "", "", "", "",
+        "DIỆN TÍCH NUÔI TRỒNG THUỶ SẢN (HA)"
+    ])
+    
+    ws2.append([
+        "", "", "", "", 
+        "Tổng diện tích lúa", "Tưới tiêu bằng trọng lực", "", "", "Tưới tiêu bằng động lực", "", "",
+        "Tổng diện tích CNN dài ngày", "Tưới tiêu bằng trọng lực", "", "", "Tưới bằng động lực", "", "",
+        "Tổng diện tích rau, màu, cây CNN ngắn ngày", "Tưới tiêu bằng trọng lực", "", "", "Tưới bằng động lực", "", "",
+        ""
+    ])
+    
+    ws2.append([
+        "", "", "", "", 
+        "", "Chủ động", "CĐ 1 phần", "Tạo nguồn", "Chủ động", "CĐ 1 phần", "Tạo nguồn",
+        "", "Chủ động", "CĐ 1 phần", "Tạo nguồn", "Chủ động", "CĐ 1 phần", "Tạo nguồn",
+        "", "Chủ động", "CĐ 1 phần", "Tạo nguồn", "Chủ động", "CĐ 1 phần", "Tạo nguồn",
+        ""
+    ])
+    
+    ws2.append([
+        "1", "2", "3", "4=(5+12+19+26)", 
+        "5=(6+..+11)", "6", "7", "8", "9", "10", "11",
+        "12=(13+..+18)", "13", "14", "15", "16", "17", "18",
+        "19=(20+..+25)", "20", "21", "22", "23", "24", "25",
+        "26"
+    ])
+
+    merges2 = [
+        'E6:K6', 'L6:R6', 'S6:Y6', 'Z6:Z8',
+        'A6:A8', 'B6:B8', 'C6:C8', 'D6:D8',
+        'E7:E8', 'L7:L8', 'S7:S8',
+        'F7:H7', 'I7:K7', 'M7:O7', 'P7:R7', 'T7:V7', 'W7:Y7'
+    ]
+    for m in merges2: ws2.merge_cells(m)
+
+    for r in range(6, 10):
+        for c in range(1, 27):
+            cell = ws2.cell(row=r, column=c)
+            cell.alignment = align_center
+            cell.border = thin_border
+            if r == 9: cell.font = font_italic 
+            else: cell.font = font_bold
+
+    # Dữ liệu PL02
+    # 1. Hàng TỔNG CỘNG
+    ws2.append(["", "TỔNG CỘNG", ""] + [""] * 23)
+    row_tong_idx = ws2.max_row
+
+    # 2. Hàng Các Vụ
+    season_total_rows = []
+    for s in seasons:
+        ws2.append(["", f"Vụ {s}", ""] + [""] * 23)
+        season_total_rows.append((s, ws2.max_row))
+
+    # 3. Hàng Trạm
+    ws2.append(["I", current_station_name.upper(), ""] + [""] * 23)
+    row_tram_idx = ws2.max_row
+
+    # 4. Hàng Công trình
+    project_totals_rows = []
+    for i, project in enumerate(projects):
+        if project == "(Trống)": continue
+        ws2.append([i+1, "", project] + [""] * 23)
+        proj_idx = ws2.max_row
+        project_totals_rows.append(proj_idx)
+        
+        vu_indices_for_proj = []
+        for s in seasons:
+            r_vu = ["", f"- Vụ {s}", ""] + [""] * 23
+            
+            # Nạp dữ liệu HA đã được tổng hợp ở bước PL01
+            for col_idx in range(6, 27):
+                r_vu[col_idx-1] = pl02_totals[project][s][col_idx]
+                
+            ws2.append(r_vu)
+            curr_idx = ws2.max_row
+            vu_indices_for_proj.append(curr_idx)
+            
+            # Gắn công thức hàng ngang cho Vụ của Công trình
+            ws2[f'D{curr_idx}'] = f"=E{curr_idx}+L{curr_idx}+S{curr_idx}+Z{curr_idx}"
+            ws2[f'E{curr_idx}'] = f"=SUM(F{curr_idx}:K{curr_idx})"
+            ws2[f'L{curr_idx}'] = f"=SUM(M{curr_idx}:R{curr_idx})"
+            ws2[f'S{curr_idx}'] = f"=SUM(T{curr_idx}:Y{curr_idx})"
+            
+        # Gắn công thức hàng dọc và ngang cho dòng Tên Công Trình
+        ws2[f'D{proj_idx}'] = f"=E{proj_idx}+L{proj_idx}+S{proj_idx}+Z{proj_idx}"
+        ws2[f'E{proj_idx}'] = f"=SUM(F{proj_idx}:K{proj_idx})"
+        ws2[f'L{proj_idx}'] = f"=SUM(M{proj_idx}:R{proj_idx})"
+        ws2[f'S{proj_idx}'] = f"=SUM(T{proj_idx}:Y{proj_idx})"
+        
+        for col_l in ['F','G','H','I','J','K','M','N','O','P','Q','R','T','U','V','W','X','Y','Z']:
+            if vu_indices_for_proj:
+                ws2[f'{col_l}{proj_idx}'] = f"=SUM({col_l}{vu_indices_for_proj[0]}:{col_l}{vu_indices_for_proj[-1]})"
+            else:
+                ws2[f'{col_l}{proj_idx}'] = 0
+
+    # 5. Gắn công thức cho dòng TRẠM
+    for col_l in ['D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']:
+        if project_totals_rows:
+            ws2[f'{col_l}{row_tram_idx}'] = f"=SUM({','.join([f'{col_l}{idx}' for idx in project_totals_rows])})"
+        else:
+            ws2[f'{col_l}{row_tram_idx}'] = 0
+            
+    # 6. Gắn công thức cho dòng VỤ (Tổng)
+    for s, s_idx in season_total_rows:
+        for col_l in ['D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']:
+            ws2[f'{col_l}{s_idx}'] = f'=SUMIF($B${row_tram_idx + 1}:$B${ws2.max_row}, "- Vụ {s}", {col_l}${row_tram_idx + 1}:{col_l}${ws2.max_row})'
+
+    # 7. Gắn công thức cho dòng TỔNG CỘNG
+    for col_l in ['D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']:
+        ws2[f'{col_l}{row_tong_idx}'] = f"={col_l}{row_tram_idx}"
+
+    # Căn chỉnh Border, Font, Nền Vàng cho Data PL02
+    for r in range(10, ws2.max_row + 1):
+        is_yellow = (r == row_tong_idx) or (r == row_tram_idx) or (r in [i for _, i in season_total_rows])
+        for c in range(1, 27):
+            cell = ws2.cell(row=r, column=c)
+            cell.border = thin_border
+            cell.alignment = align_center if c != 2 and c != 3 else align_left
+            if c >= 4: 
+                cell.number_format = '#,##0.00;-#,##0.00;""'
+            if is_yellow:
+                cell.fill = fill_yellow
+                cell.font = Font(name='Times New Roman', size=11, bold=True, color="FF0000")
+            elif r in project_totals_rows:
+                cell.font = font_bold
+            else:
+                cell.font = font_normal
+
+    # Chèn Chữ ký Footer PL02
+    ws2.append([""] * 26)
+    ws2.append([""] * 26)
+    f2_row = ws2.max_row + 1
+    
+    # Dòng 1: UBND Xã | TRẠM | Ngày tháng
+    row_f2_1 = [""] * 26
+    row_f2_1[1] = "UBND XÃ..............."
+    row_f2_1[9] = current_station_name.upper()
+    row_f2_1[18] = "Ngày ..... tháng ..... năm ....."
+    ws2.append(row_f2_1)
+    
+    # Dòng 2: Ký tên | | Công ty
+    row_f2_2 = [""] * 26
+    row_f2_2[1] = "(Ký tên, đóng dấu)"
+    row_f2_2[18] = "CÔNG TY TNHH MTV KHAI THÁC CTTL KON TUM"
+    ws2.append(row_f2_2)
+    
+    # Các dòng khoảng trống Ký
+    for _ in range(4): ws2.append([""] * 26)
+    
+    # Dòng Ký tên cho Trạm và Công Ty (ở dưới cùng)
+    row_f2_last = [""] * 26
+    row_f2_last[9] = "(Ký tên, đóng dấu)"
+    row_f2_last[18] = "(Ký tên, đóng dấu)"
+    ws2.append(row_f2_last)
+
+    # Merge và Style cho Footer PL02
+    # Cột 1: UBND (Index B)
+    ws2.merge_cells(start_row=f2_row, start_column=2, end_row=f2_row, end_column=6)
+    ws2.merge_cells(start_row=f2_row+1, start_column=2, end_row=f2_row+1, end_column=6)
+    
+    # Cột 2: TRẠM (Index J)
+    ws2.merge_cells(start_row=f2_row, start_column=10, end_row=f2_row, end_column=14)
+    ws2.merge_cells(start_row=ws2.max_row, start_column=10, end_row=ws2.max_row, end_column=14)
+    
+    # Cột 3: CÔNG TY (Index S)
+    ws2.merge_cells(start_row=f2_row, start_column=19, end_row=f2_row, end_column=26)
+    ws2.merge_cells(start_row=f2_row+1, start_column=19, end_row=f2_row+1, end_column=26)
+    ws2.merge_cells(start_row=ws2.max_row, start_column=19, end_row=ws2.max_row, end_column=26)
+
+    # Style
+    for c in [2, 10, 19]:
+        cell1 = ws2.cell(row=f2_row, column=c)
+        cell1.alignment = Alignment(horizontal='center', vertical='center')
+        cell2 = ws2.cell(row=f2_row+1, column=c)
+        cell2.alignment = Alignment(horizontal='center', vertical='center')
+        cell3 = ws2.cell(row=ws2.max_row, column=c)
+        cell3.alignment = Alignment(horizontal='center', vertical='center')
+        
+        if c == 19: # Dòng Ngày tháng in nghiêng
+            cell1.font = Font(name='Times New Roman', size=11, italic=True)
+            cell2.font = Font(name='Times New Roman', size=11, bold=True)
+            cell3.font = Font(name='Times New Roman', size=11, italic=True)
+        elif c == 10: # Trạm
+            cell1.font = Font(name='Times New Roman', size=11, bold=True)
+            cell3.font = Font(name='Times New Roman', size=11, italic=True)
+        else: # UBND
+            cell1.font = Font(name='Times New Roman', size=11, bold=True)
+            cell2.font = Font(name='Times New Roman', size=11, italic=True)
+
+    ws2.column_dimensions['A'].width = 5
+    ws2.column_dimensions['B'].width = 20
+    ws2.column_dimensions['C'].width = 30
+    for i in range(4, 27): ws2.column_dimensions[get_column_letter(i)].width = 11
 
     out = io.BytesIO()
     wb.save(out)
@@ -812,15 +1150,57 @@ def export_formatted_data_goc(df):
             cell.font = font_bold if r < 6 else font_italic
             if r == 6: cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
 
-    for r_idx, row in enumerate(df_clean.values, start=7):
-        ws.append(list(row))
-        for col_idx, cell in enumerate(ws[r_idx], start=1):
-            cell.font = font_normal
+    # Nhận diện danh sách dự án
+    projects = []
+    if '6' in df_clean.columns:
+        for p in df_clean['6'].astype(str).str.strip():
+            if p not in ["", "nan", "None", "<NA>", "0", "0.0"] and p not in projects:
+                projects.append(p)
+                
+    if not projects:
+        projects = ["(Trống)"]
+
+    # Xử lý gộp dòng cho file DATA NỘI BỘ (Chừa 1 dòng trống điền tên CT)
+    for project in projects:
+        df_project = df_clean[df_clean['6'].astype(str).str.strip() == project] if '6' in df_clean.columns else df_clean
+        if df_project.empty: continue
+        
+        # 1. Hàng Header chỉ chứa tên Công trình (Bôi vàng giống ý người dùng)
+        proj_row = [""] * 30
+        proj_row[5] = project
+        ws.append(proj_row)
+        header_row_idx = ws.max_row
+        for c in range(1, 31):
+            cell = ws.cell(row=header_row_idx, column=c)
             cell.border = thin_border
-            cell.alignment = align_left if col_idx == 2 else align_center
+            if c == 6:
+                cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+                cell.font = Font(name='Times New Roman', size=11, bold=True)
+                cell.alignment = align_center
+
+        # 2. Các hàng Dữ liệu thửa đất (Xóa ẩn tên công trình đi)
+        for _, row in df_project.iterrows():
+            row_data = list(row)
+            row_data[5] = "" # Chừa trống Tên CT
             
-            if col_idx >= 5 and col_idx <= 29:
-                cell.number_format = '#,##0.00;-#,##0.00;""'
+            clean_row = []
+            for i, v in enumerate(row_data):
+                if i >= 4 and i <= 28 and i != 5: # Fomat các cột số liệu diện tích
+                    val = to_float(v)
+                    clean_row.append(clean_zero(val))
+                else:
+                    clean_row.append(v)
+
+            ws.append(clean_row)
+            
+            data_row_idx = ws.max_row
+            for col_idx, cell in enumerate(ws[data_row_idx], start=1):
+                cell.font = font_normal
+                cell.border = thin_border
+                cell.alignment = align_left if col_idx == 2 else align_center
+                
+                if col_idx >= 5 and col_idx <= 29:
+                    cell.number_format = '#,##0.00;-#,##0.00;""'
 
     ws.column_dimensions['B'].width = 25
     for i in range(5, 31): ws.column_dimensions[get_column_letter(i)].width = 11
@@ -833,7 +1213,7 @@ def export_formatted_data_goc(df):
 # ==========================================
 # MAIN TABS (CHUYỂN ĐỔI CHỨC NĂNG)
 # ==========================================
-tab1, tab2 = st.tabs(["📊 XÂY DỰNG BÁO CÁO PL01", "🕵️ KIỂM TRA & PHỤC HỒI DATA"])
+tab1, tab2 = st.tabs(["📊 XÂY DỰNG BÁO CÁO PL01 & PL02", "🕵️ KIỂM TRA & PHỤC HỒI DATA"])
 
 # ------------------------------------------
 # TAB 1: XÂY DỰNG BÁO CÁO PL01
@@ -845,7 +1225,16 @@ with tab1:
 
     if uploaded_file is not None:
         try:
-            df_check_type = pd.read_excel(uploaded_file, header=None, nrows=10)
+            # Đọc danh sách sheet
+            xls = pd.ExcelFile(uploaded_file)
+            sheet_names = xls.sheet_names
+            
+            if len(sheet_names) > 1:
+                selected_sheet = st.selectbox("📂 File có nhiều Sheet. Vui lòng chọn Sheet chứa Data Gốc:", sheet_names)
+            else:
+                selected_sheet = sheet_names[0]
+                
+            df_check_type = pd.read_excel(uploaded_file, sheet_name=selected_sheet, header=None, nrows=15)
             is_pl01_file = False
             for i, row in df_check_type.iterrows():
                 vals = [str(x).strip() for x in row.values]
@@ -854,114 +1243,126 @@ with tab1:
                     break
             
             if is_pl01_file:
-                st.error("🚫 **CẢNH BÁO:** Bạn đang tải lên file Báo cáo **PL01** vào khu vực Tạo báo cáo! Vui lòng chỉ tải file **Data Gốc** vào đây. (Nếu muốn kiểm tra file PL01, hãy chuyển sang Tab 2).")
-                uploaded_file = None 
-        except Exception as e:
-            pass
-
-    if uploaded_file is not None:
-        if st.session_state.get('last_file_id') != uploaded_file.file_id:
-            st.session_state['last_file_id'] = uploaded_file.file_id
-            
-            for key in ['raw_data', 'pl01_data', 'goc_data', 'cfg_hash']:
-                if key in st.session_state:
-                    del st.session_state[key]
-            gc.collect()
-            
-            progress_text = "⏳ Đang phân tích và đồng bộ hóa cấu trúc file..."
-            my_bar = st.progress(0, text=progress_text)
-            for percent in range(100):
-                time.sleep(0.005)
-                my_bar.progress(percent + 1, text=f"{progress_text} {percent + 1}%")
-            my_bar.empty()
-            
-            df_raw = pd.read_excel(uploaded_file, header=None)
-            
-            col_map = {}
-            header_idx = -1
-            
-            for i, row in df_raw.head(20).iterrows():
-                vals = [str(x).strip().replace('.0', '') for x in row.values]
-                if '1' in vals and '2' in vals and '3' in vals and '9' in vals:
-                    header_idx = i
-                    for c_idx, val in enumerate(vals):
-                        if val in COLS:
-                            col_map[val] = c_idx
-                    break
-                    
-            if header_idx == -1 or not col_map:
-                temp_header = [""] * df_raw.shape[1]
-                for r in range(min(10, len(df_raw))):
-                    row_vals = df_raw.iloc[r].values
-                    current_val = ""
-                    for c in range(len(row_vals)):
-                        val = str(row_vals[c]).strip()
-                        if val and val.lower() != 'nan':
-                            current_val = val
-                        else:
-                            val = current_val 
-                        temp_header[c] += " " + normalize_text(val)
-                
-                for c_idx, text in enumerate(temp_header):
-                    if "hogiadinh" in text or "canhan" in text: col_map['2'] = c_idx
-                    elif "bando" in text or "soto" in text: col_map['3'] = c_idx
-                    elif "sothua" in text: col_map['4'] = c_idx
-                    elif "dientichthua" in text: col_map['5'] = c_idx
-                    elif "tencongtrinh" in text: col_map['6'] = c_idx
-                    elif "luachudong" in text and "trongluc" in text: col_map['9'] = c_idx
-                
-                for i, row in df_raw.head(20).iterrows():
-                    vals = [str(x).strip().replace('.0', '') for x in row.values]
-                    if 'Tổng cộng' in vals or any("Vụ" in v for v in vals):
-                        header_idx = max(0, i - 1)
-                        break
-                    
-            if header_idx != -1 and col_map:
-                data_part = df_raw.iloc[header_idx+1:].reset_index(drop=True)
-                extracted_rows = []
-                current_ho = ""
-                
-                for _, row in data_part.iterrows():
-                    c2_idx = col_map.get('2', -1)
-                    c3_idx = col_map.get('3', -1)
-                    c4_idx = col_map.get('4', -1)
-                    
-                    c2 = str(row.iloc[c2_idx]).strip() if c2_idx != -1 and pd.notna(row.iloc[c2_idx]) else ""
-                    c3 = str(row.iloc[c3_idx]).strip() if c3_idx != -1 and pd.notna(row.iloc[c3_idx]) else ""
-                    c4 = str(row.iloc[c4_idx]).strip() if c4_idx != -1 and pd.notna(row.iloc[c4_idx]) else ""
-                    
-                    if c2.startswith('Tổng cộng') or (c2.startswith('Vụ ') and not c2.startswith('- Vụ ')):
-                        continue
-                        
-                    if c2 != "" and c3 in ["", "nan", "None", "<NA>"] and c4 in ["", "nan", "None", "<NA>"] and not c2.startswith("- Vụ"):
-                        current_ho = c2
-                        continue
-                        
-                    if (c3 not in ["", "nan", "None", "<NA>"]) or (c4 not in ["", "nan", "None", "<NA>"]):
-                        actual_ho = c2 if (c2 not in ["", "nan", "None", "<NA>"] and not c2.startswith("- Vụ")) else current_ho
-                        
-                        new_row_data = [""] * 30
-                        for col_num in COLS:
-                            c_idx = col_map.get(col_num, -1)
-                            if c_idx != -1 and c_idx < len(row):
-                                new_row_data[int(col_num)-1] = row.iloc[c_idx]
-                        
-                        new_row = pd.Series(new_row_data, index=COLS)
-                        new_row['2'] = actual_ho
-                        new_row['7'] = 0; new_row['8'] = 0; new_row['15'] = 0; new_row['22'] = 0
-                        extracted_rows.append(new_row)
-                        
-                df_final = pd.DataFrame(extracted_rows, columns=COLS)
-                df_final = df_final.dropna(subset=['2'])
-                df_final = df_final[df_final['2'].astype(str).str.strip() != ""]
-                for col in ['3', '4']: df_final[col] = df_final[col].apply(clean_text)
-                
-                st.session_state.raw_data = df_final
-                st.session_state.pop('pl01_data', None)
-                st.session_state.pop('goc_data', None)
-                st.toast("✅ Đã nhận diện và bóc tách dữ liệu thành công!", icon="🚀")
+                st.error("🚫 **CẢNH BÁO:** Bạn đang chọn Sheet chứa Báo cáo **PL01** vào khu vực Tạo báo cáo! Vui lòng chỉ chọn Sheet **Data Gốc** vào đây. (Nếu muốn kiểm tra file PL01, hãy chuyển sang Tab 2).")
+                st.session_state.pop('raw_data', None)
             else:
-                st.error("❌ File không đúng định dạng. Không tìm thấy Hàng chứa số thứ tự cột (1 -> 30) hoặc các Tiêu đề cốt lõi.")
+                if st.session_state.get('last_file_id') != f"{uploaded_file.file_id}_{selected_sheet}":
+                    st.session_state['last_file_id'] = f"{uploaded_file.file_id}_{selected_sheet}"
+                    
+                    for key in ['raw_data', 'pl01_data', 'goc_data', 'cfg_hash']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    gc.collect()
+                    
+                    progress_text = "⏳ Đang phân tích và đồng bộ hóa cấu trúc file..."
+                    my_bar = st.progress(0, text=progress_text)
+                    for percent in range(100):
+                        time.sleep(0.005)
+                        my_bar.progress(percent + 1, text=f"{progress_text} {percent + 1}%")
+                    my_bar.empty()
+                    
+                    # Đọc đúng sheet đã chọn
+                    df_raw = pd.read_excel(uploaded_file, sheet_name=selected_sheet, header=None)
+                    
+                    col_map = {}
+                    header_idx = -1
+                    
+                    for i, row in df_raw.head(20).iterrows():
+                        vals = [str(x).strip().replace('.0', '') for x in row.values]
+                        if '1' in vals and '2' in vals and '3' in vals and '9' in vals:
+                            header_idx = i
+                            for c_idx, val in enumerate(vals):
+                                if val in COLS:
+                                    col_map[val] = c_idx
+                            break
+                            
+                    if header_idx == -1 or not col_map:
+                        temp_header = [""] * df_raw.shape[1]
+                        for r in range(min(10, len(df_raw))):
+                            row_vals = df_raw.iloc[r].values
+                            current_val = ""
+                            for c in range(len(row_vals)):
+                                val = str(row_vals[c]).strip()
+                                if val and val.lower() != 'nan':
+                                    current_val = val
+                                else:
+                                    val = current_val 
+                                temp_header[c] += " " + normalize_text(val)
+                        
+                        for c_idx, text in enumerate(temp_header):
+                            if "hogiadinh" in text or "canhan" in text: col_map['2'] = c_idx
+                            elif "bando" in text or "soto" in text: col_map['3'] = c_idx
+                            elif "sothua" in text: col_map['4'] = c_idx
+                            elif "dientichthua" in text: col_map['5'] = c_idx
+                            elif "tencongtrinh" in text: col_map['6'] = c_idx
+                            elif "luachudong" in text and "trongluc" in text: col_map['9'] = c_idx
+                        
+                        for i, row in df_raw.head(20).iterrows():
+                            vals = [str(x).strip().replace('.0', '') for x in row.values]
+                            if 'Tổng cộng' in vals or any("Vụ" in v for v in vals):
+                                header_idx = max(0, i - 1)
+                                break
+                            
+                    if header_idx != -1 and col_map:
+                        data_part = df_raw.iloc[header_idx+1:].reset_index(drop=True)
+                        extracted_rows = []
+                        current_ho = ""
+                        current_cong_trinh = "" 
+                        
+                        for _, row in data_part.iterrows():
+                            c2_idx = col_map.get('2', -1)
+                            c3_idx = col_map.get('3', -1)
+                            c4_idx = col_map.get('4', -1)
+                            c6_idx = col_map.get('6', -1)
+                            
+                            c2 = str(row.iloc[c2_idx]).strip() if c2_idx != -1 and pd.notna(row.iloc[c2_idx]) else ""
+                            c3 = str(row.iloc[c3_idx]).strip() if c3_idx != -1 and pd.notna(row.iloc[c3_idx]) else ""
+                            c4 = str(row.iloc[c4_idx]).strip() if c4_idx != -1 and pd.notna(row.iloc[c4_idx]) else ""
+                            c6 = str(row.iloc[c6_idx]).strip() if c6_idx != -1 and pd.notna(row.iloc[c6_idx]) else ""
+                            
+                            if c2.startswith('Tổng cộng') or (c2.startswith('Vụ ') and not c2.startswith('- Vụ ')):
+                                continue
+                                
+                            if c2 != "" and c3 in ["", "nan", "None", "<NA>"] and c4 in ["", "nan", "None", "<NA>"] and not c2.startswith("- Vụ"):
+                                current_ho = c2
+                                continue
+                            
+                            if c6 != "" and c2 in ["", "nan", "None", "<NA>"] and c3 in ["", "nan", "None", "<NA>"]:
+                                current_cong_trinh = c6
+                                continue
+                                
+                            if (c3 not in ["", "nan", "None", "<NA>"]) or (c4 not in ["", "nan", "None", "<NA>"]):
+                                actual_ho = c2 if (c2 not in ["", "nan", "None", "<NA>"] and not c2.startswith("- Vụ")) else current_ho
+                                
+                                new_row_data = [""] * 30
+                                for col_num in COLS:
+                                    c_idx = col_map.get(col_num, -1)
+                                    if c_idx != -1 and c_idx < len(row):
+                                        new_row_data[int(col_num)-1] = row.iloc[c_idx]
+                                
+                                new_row = pd.Series(new_row_data, index=COLS)
+                                new_row['2'] = actual_ho
+                                
+                                if str(new_row['6']).strip() in ["", "nan", "None", "<NA>"] and current_cong_trinh != "":
+                                    new_row['6'] = current_cong_trinh
+                                    
+                                new_row['7'] = 0; new_row['8'] = 0; new_row['15'] = 0; new_row['22'] = 0
+                                extracted_rows.append(new_row)
+                                
+                        df_final = pd.DataFrame(extracted_rows, columns=COLS)
+                        df_final = df_final.dropna(subset=['2'])
+                        df_final = df_final[df_final['2'].astype(str).str.strip() != ""]
+                        for col in ['3', '4']: df_final[col] = df_final[col].apply(clean_text)
+                        
+                        st.session_state.raw_data = df_final
+                        st.session_state.pop('pl01_data', None)
+                        st.session_state.pop('goc_data', None)
+                        st.toast("✅ Đã nhận diện và bóc tách dữ liệu thành công!", icon="🚀")
+                    else:
+                        st.error("❌ File không đúng định dạng. Không tìm thấy Hàng chứa số thứ tự cột (1 -> 30) hoặc các Tiêu đề cốt lõi.")
+
+        except Exception as e:
+            st.error(f"❌ Lỗi đọc file: Vui lòng kiểm tra lại định dạng file Excel. Lỗi chi tiết: {e}")
 
     if 'raw_data' in st.session_state:
         st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
@@ -1044,7 +1445,7 @@ with tab1:
                 my_bar.progress(percent, text=f"{progress_text} {percent}%")
                 
             my_bar.progress(40, text="⏳ HỆ THỐNG ĐANG CHẠY...")
-            pl01_data = export_pl01_excel(st.session_state.raw_data, cfg, master_seasons)
+            pl01_data = export_pl01_excel(st.session_state.raw_data, cfg, master_seasons, station_name)
             
             my_bar.progress(70, text="⏳ VUI LÒNG CHỜ TRONG GIÂY LÁT... ")
             goc_data = export_formatted_data_goc(st.session_state.raw_data)
@@ -1057,18 +1458,18 @@ with tab1:
             
             st.session_state['pl01_data'] = pl01_data
             st.session_state['goc_data'] = goc_data
-            st.session_state['cfg_hash'] = str(cfg) + str(master_seasons)
+            st.session_state['cfg_hash'] = str(cfg) + str(master_seasons) + station_name
 
         if 'pl01_data' in st.session_state:
-            if st.session_state.get('cfg_hash') == str(cfg) + str(master_seasons):
+            if st.session_state.get('cfg_hash') == str(cfg) + str(master_seasons) + station_name:
                 st.markdown("<br>", unsafe_allow_html=True)
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.download_button(label="📥 TẢI XUỐNG BÁO CÁO PL01 CHUẨN", data=st.session_state['pl01_data'], file_name="BieuMau_PL01.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    st.download_button(label="📥 TẢI XUỐNG BÁO CÁO PL01 & PL02 CHUẨN", data=st.session_state['pl01_data'], file_name="BieuMau_PL01_PL02.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 with col2:
                     st.download_button(label="🔄 TẢI FILE DATA NỘI BỘ", data=st.session_state['goc_data'], file_name="Data_Goc.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             else:
-                st.warning("⚠️ Cấu hình mùa vụ đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
+                st.warning("⚠️ Cấu hình mùa vụ hoặc Tên Trạm đã thay đổi. Vui lòng bấm 'TỔNG HỢP VÀ TẠO BÁO CÁO' lại để cập nhật.")
 
 # ------------------------------------------
 # TAB 2: KIỂM TRA & PHỤC HỒI DATA TỪ PL01
@@ -1081,27 +1482,32 @@ with tab2:
 
     if check_file is not None:
         try:
-            df_check = pd.read_excel(check_file, header=None)
+            # Chọn Sheet cho Tab 2
+            xls_check = pd.ExcelFile(check_file)
+            sheet_names_check = xls_check.sheet_names
             
-            col_map_pl01 = {str(i): i-1 for i in range(1, 31)}
+            if len(sheet_names_check) > 1:
+                selected_sheet_check = st.selectbox("📂 File có nhiều Sheet. Vui lòng chọn Sheet chứa Báo Cáo PL01:", sheet_names_check)
+            else:
+                selected_sheet_check = sheet_names_check[0]
+                
+            df_check = pd.read_excel(check_file, sheet_name=selected_sheet_check, header=None)
+            
+            col_map_pl01 = {}
             start_row_idx = -1
             
+            # Tối ưu hóa việc tìm Start Row (Bắt ngay sau dòng đánh số 1, 2, 3...)
             for i, row in df_check.head(20).iterrows():
                 vals = [str(x).strip().replace('.0', '') for x in row.values]
                 if '1' in vals and '2' in vals and '3' in vals:
-                    col_map_pl01 = {}
                     for c_idx, val in enumerate(vals):
                         if val in COLS:
                             col_map_pl01[val] = c_idx
-                            
-                for val in vals:
-                    if "tổng cộng" in val.lower():
-                        start_row_idx = i + 1
-                        break
-                if start_row_idx != -1: break
+                    start_row_idx = i + 1 
+                    break
                     
             if start_row_idx == -1:
-                st.error("❌ Không tìm thấy cấu trúc chuẩn. Vui lòng đảm bảo đây là file PL01 (có chứa hàng 'Tổng cộng').")
+                st.error("❌ Không tìm thấy cấu trúc chuẩn. Vui lòng đảm bảo đây là file PL01 (có chứa hàng đánh số cột từ 1 đến 30).")
             else:
                 st.markdown("<br><h3 style='color: #1e293b; font-size: 1.2rem; margin-bottom: 10px;'>🔎 Phân tích Dữ liệu File tải lên</h3>", unsafe_allow_html=True)
                 with st.container(border=True):
@@ -1109,13 +1515,18 @@ with tab2:
                     current_season = "Không xác định"
                     parcels = []
                     
+                    idx_1 = col_map_pl01.get('1', 0)
+                    idx_2 = col_map_pl01.get('2', 1)
+                    idx_3 = col_map_pl01.get('3', 2)
+                    idx_4 = col_map_pl01.get('4', 3)
+                    
                     for idx, row in data.iterrows():
+                        # Dừng Radar nếu chạm chữ ký
+                        row_str = " ".join([str(x).lower() for x in row.values if pd.notna(x)])
+                        if "người lập" in row_str or "phòng kinh tế" in row_str or "ký tên" in row_str or "ngày" in str(row.iloc[17] if len(row)>17 else "").lower():
+                            break
+                            
                         excel_row_num = idx + 1 
-                        
-                        idx_1 = col_map_pl01.get('1', 0)
-                        idx_2 = col_map_pl01.get('2', 1)
-                        idx_3 = col_map_pl01.get('3', 2)
-                        idx_4 = col_map_pl01.get('4', 3)
                         
                         col2_name = str(row[idx_2]).strip() if idx_2 < len(row) and pd.notna(row[idx_2]) else ""
                         col3_to = str(row[idx_3]).strip() if idx_3 < len(row) and pd.notna(row[idx_3]) else ""
@@ -1159,15 +1570,21 @@ with tab2:
                         extracted_rows = []
                         current_ho_reverse = ""
                         current_season_reverse = "Không xác định"
+                        current_cong_trinh_reverse = ""
                         
-                        for idx, row in df_check.iloc[start_row_idx:].iterrows():
-                            idx_1 = col_map_pl01.get('1', 0)
-                            idx_2 = col_map_pl01.get('2', 1)
-                            idx_3 = col_map_pl01.get('3', 2)
-                            idx_4 = col_map_pl01.get('4', 3)
-                            idx_5 = col_map_pl01.get('5', 4)
-                            idx_6 = col_map_pl01.get('6', 5)
+                        idx_1 = col_map_pl01.get('1', 0)
+                        idx_2 = col_map_pl01.get('2', 1)
+                        idx_3 = col_map_pl01.get('3', 2)
+                        idx_4 = col_map_pl01.get('4', 3)
+                        idx_5 = col_map_pl01.get('5', 4)
+                        idx_6 = col_map_pl01.get('6', 5)
 
+                        for idx, row in df_check.iloc[start_row_idx:].iterrows():
+                            # BỘ LỌC FOOTER (Chống đẻ dòng ma)
+                            row_str_check = " ".join([str(x).lower() for x in row.values if pd.notna(x)])
+                            if "người lập" in row_str_check or "phòng kinh tế" in row_str_check or "ký tên" in row_str_check or "ngày" in str(row.iloc[17] if len(row)>17 else "").lower():
+                                break
+                                
                             col1_val = row[idx_1] if idx_1 < len(row) else ""
                             col1_tt = str(col1_val).strip() if pd.notna(col1_val) else ""
                             
@@ -1175,19 +1592,45 @@ with tab2:
                             col2_name = str(col2_val).strip() if pd.notna(col2_val) else ""
                             if col2_name.lower() in ["nan", "none", "<na>"]: col2_name = ""
                             
-                            if col1_tt.isdigit() or (col2_name != "" and not col2_name.startswith("- Vụ") and not col2_name.startswith("Tổng") and not col2_name.startswith("Vụ ")):
+                            col6_val = row[idx_6] if idx_6 < len(row) else ""
+                            col6_name = str(col6_val).strip() if pd.notna(col6_val) else ""
+                            
+                            # 1. Bắt Tên Công Trình tại dòng Tổng cộng
+                            if col2_name.lower() == "tổng cộng":
+                                if col6_name and col6_name.lower() not in ["nan", "none", "<na>"]:
+                                    current_cong_trinh_reverse = col6_name
+                                continue 
+                            
+                            # 2. Bỏ qua các dòng Vụ tổng hợp
+                            if col2_name.startswith("Vụ "):
+                                continue
+                            
+                            # 3. Bắt Tên Hộ
+                            if col1_tt.isdigit() or (col2_name != "" and not col2_name.startswith("- Vụ")):
                                 current_ho_reverse = col2_name
                                 
+                            # 4. Bắt Tên Mùa Vụ
                             if col2_name.startswith("- Vụ"):
                                 current_season_reverse = col2_name
                                 
+                            # 5. Extract Data Thửa Đất
                             if col2_name == "" and current_ho_reverse != "":
                                 has_data = False
-                                for i in range(2, 30):
+                                
+                                target_indices = [8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28]
+                                
+                                # CHỈ LẤY NẾU DIỆN TÍCH THỰC SỰ LỚN HƠN 0
+                                for i in target_indices:
                                     a_idx = col_map_pl01.get(str(i+1), -1)
-                                    if a_idx != -1 and a_idx < len(row) and pd.notna(row[a_idx]) and str(row[a_idx]).strip() not in ["", "nan", "None", "0", "0.0"]:
-                                        has_data = True
-                                        break
+                                    if a_idx != -1 and a_idx < len(row):
+                                        val_str = str(row[a_idx]).strip()
+                                        if val_str not in ["", "nan", "None", "0", "0.0", "-"]:
+                                            try:
+                                                if float(val_str.replace(',', '')) > 0:
+                                                    has_data = True
+                                                    break
+                                            except:
+                                                pass
                                         
                                 if has_data:
                                     new_row = [""] * 30
@@ -1200,13 +1643,7 @@ with tab2:
                                     new_row[3] = str(col4_val).strip() if pd.notna(col4_val) and str(col4_val).strip().lower() not in ['nan','none'] else ""
                                     
                                     new_row[4] = row[idx_5] if idx_5 < len(row) and pd.notna(row[idx_5]) else ""
-                                    new_row[5] = row[idx_6] if idx_6 < len(row) and pd.notna(row[idx_6]) else ""
-                                    
-                                    target_indices = [
-                                        8, 9, 10, 11, 12, 13,    
-                                        15, 16, 17, 18, 19, 20,  
-                                        22, 23, 24, 25, 26, 27, 28 
-                                    ]
+                                    new_row[5] = current_cong_trinh_reverse 
                                     
                                     for i in target_indices:
                                         actual_idx = col_map_pl01.get(str(i+1), -1)
@@ -1227,18 +1664,18 @@ with tab2:
                             for col in target_cols:
                                 df_extracted[col] = pd.to_numeric(df_extracted[col], errors='coerce').fillna(0)
                             
-                            df_extracted['Dup_Idx'] = df_extracted.groupby(['2', '3', '4', '5', 'Season']).cumcount()
+                            df_extracted['Dup_Idx'] = df_extracted.groupby(['2', '3', '4', '5', '6', 'Season']).cumcount()
                             
                             agg_funcs = {col: 'first' for col in COLS}
                             for col in target_cols: 
                                 agg_funcs[col] = 'max' 
                                 
-                            df_recovered = df_extracted.groupby(['2', '3', '4', '5', 'Dup_Idx'], sort=False, as_index=False).agg(agg_funcs)
+                            df_recovered = df_extracted.groupby(['2', '3', '4', '5', '6', 'Dup_Idx'], sort=False, as_index=False).agg(agg_funcs)
                             df_recovered = df_recovered[COLS] 
                             
                             recovered_excel = export_formatted_data_goc(df_recovered)
                             
-                            st.success("✅ Trích xuất thành công! Dữ liệu đã được gộp chuẩn xác bất kể hệ thống có bao nhiêu Vụ.")
+                            st.success("✅ Trích xuất thành công! Dữ liệu đã được gộp chuẩn xác, tách riêng theo Công Trình bất kể hệ thống có bao nhiêu Vụ.")
                             st.download_button(
                                 label="📥 TẢI XUỐNG DATA GỐC ĐÃ PHỤC HỒI", 
                                 data=recovered_excel, 
@@ -1246,7 +1683,7 @@ with tab2:
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             )
                         else:
-                            st.warning("⚠️ Không tìm thấy dữ liệu hợp lệ để phục hồi.")
+                            st.warning("⚠️ Không tìm thấy dữ liệu hợp lệ để phục hồi. Hãy đảm bảo File PL01 đúng chuẩn.")
                         
         except Exception as e:
-            st.error(f"❌ Lỗi đọc file: {e}")
+            st.error(f"❌ Lỗi đọc file: Vui lòng kiểm tra lại định dạng file Excel. Lỗi chi tiết: {e}")
