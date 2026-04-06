@@ -365,7 +365,6 @@ if not check_password():
 # ==========================================
 # GIAO DIỆN CHÍNH (MAIN APP HEADER)
 # ==========================================
-
 st.markdown("""
 <style>
     .pm-quotes-container {
@@ -392,12 +391,12 @@ st.markdown("""
     .pm-marquee-wrapper {
         flex-grow: 1; 
         overflow: hidden; 
-        position: relative;
+        white-space: nowrap;
     }
     .pm-marquee {
         display: inline-block;
-        white-space: nowrap;
-        animation: marquee-quotes 35s linear infinite;
+        padding-left: 100%; 
+        animation: marquee-quotes 30s linear infinite; 
         font-weight: 500;
         font-size: 0.95rem;
     }
@@ -412,7 +411,7 @@ st.markdown("""
         color: #fbbf24; 
     }
     @keyframes marquee-quotes {
-        0% { transform: translateX(100%); }
+        0% { transform: translateX(0); } 
         100% { transform: translateX(-100%); }
     }
 </style>
@@ -432,9 +431,6 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-
-st.markdown("<div class='app-header'>HỆ THỐNG TỰ ĐỘNG HÓA PL01 & PL02</div>", unsafe_allow_html=True)
-st.markdown("<div class='app-subheader'>Nền tảng số hóa dữ liệu Thủy lợi: Chính xác, Minh bạch và Hiệu quả.</div>", unsafe_allow_html=True)
 # ==========================================
 # 0. KHU VỰC CHÈN ẢNH CHỦ QUYỀN (SIDEBAR)
 # ==========================================
